@@ -1,0 +1,34 @@
+# Compiled object files and build artifacts
+*.hex
+*.elf
+*.bin
+*.eep
+*.map
+*.lst
+*.lss
+*.o
+*.d
+build/
+app/bin/
+*.tmp
+*.log
+
+# IDE specific files
+.vscode/
+.idea/
+__vm/
+sketch.json
+.pio/
+.platformio/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# Sensitive information
+secrets.h
+.env
+blynk_auth_token.h
