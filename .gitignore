@@ -31,4 +31,3 @@ Thumbs.db
 # Sensitive information
 secrets.h
 .env
-blynk_auth_token.h

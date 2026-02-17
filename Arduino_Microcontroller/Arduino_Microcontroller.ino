@@ -4,32 +4,42 @@
  * GNU GPLv3
  */
 
+#include <Wire.h>
+#include <Adafruit_INA219.h>
 
-// Yet to get components so code is improvised for now
+Adafruit_INA219 ina219;
 
-float light = 800;
-float temp = 28;
-float power = 3.0;
+float smoothLight() {
+  float sum = 0;
+  for (int i = 0; i < 10; i++) {
+    sum += analogRead(A0);
+    delay(5);
+  }
+  return sum / 10.0;
+}
 
 void setup() {
   Serial.begin(9600);
+  ina219.begin();
 }
 
 void loop() {
+  float light = smoothLight();
 
-  light -= 50;     // simulate shade/dust
-  temp += 1;       // simulate overheating
-  power -= 0.2;    // simulate power drop
+  float tempRaw = analogRead(A1);
+  float voltage = tempRaw * (5.0 / 1023.0);
+  float temperatureC = voltage * 100.0;
 
-  if (light < 200) light = 800;
-  if (temp > 50) temp = 28;
-  if (power < 1.0) power = 3.0;
+  float busVoltage = ina219.getBusVoltage_V();
+  float current_mA = ina219.getCurrent_mA();
+  float power_mW = ina219.getPower_mW();
+
 
   Serial.print(light);
   Serial.print(",");
-  Serial.print(temp);
+  Serial.print(temperatureC);
   Serial.print(",");
-  Serial.println(power);
+  Serial.println(power_mW);
 
   delay(2000);
 }
