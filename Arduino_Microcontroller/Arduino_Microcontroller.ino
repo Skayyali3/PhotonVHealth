@@ -32,7 +32,9 @@ float previousLight = 0;
 float previousPower = 0;
 
 // Timing for alerts
-unsigned long lastAlertTime = 0;
+unsigned long lastOverheatAlert = 0;
+unsigned long lastDustAlert = 0;
+unsigned long lastShadeAlert = 0;
 unsigned long alertCooldown = 60000; // 1 minute
 
 // Button state
@@ -75,25 +77,27 @@ void checkAlerts() {
   float lightChange = previousLight - adjustedLight;
   float powerChange = previousPower - powerVal;
 
-  // Overheat
+  // Overheat alert
   if (tempVal > 45 && efficiency < 90) {
-    if (millis() - lastAlertTime > alertCooldown) {
-      BTSerial.println("ALERT: Panel overheating!");
-      lastAlertTime = millis();
+    if (millis() - lastOverheatAlert > alertCooldown) {
+      BTSerial.println("ALERT: Panel OVERHEATING!");
+      lastOverheatAlert = millis();
     }
   }
-  // Dust
-  else if (adjustedLight > baselineLight * 0.8 && efficiency < 75) {
-    if (millis() - lastAlertTime > alertCooldown) {
-      BTSerial.println("ALERT: Dust suspected, clean panel.");
-      lastAlertTime = millis();
+
+  // Dust alert
+  if (adjustedLight > baselineLight * 0.8 && efficiency < 75) {
+    if (millis() - lastDustAlert > alertCooldown) {
+        BTSerial.println("ALERT: Dust suspected, clean panel.");
+        lastDustAlert = millis();
     }
   }
-  // Shade
-  else if (lightChange > 200 && powerChange > (previousPower * 0.2)) {
-    if (millis() - lastAlertTime > alertCooldown) {
-      BTSerial.println("ALERT: Sudden shading detected.");
-      lastAlertTime = millis();
+
+  // Shade alert
+  if (lightChange > 200 && powerChange > (previousPower * 0.2)) {
+    if (millis() - lastShadeAlert > alertCooldown) {
+      BTSerial.println("ALERT: Sudden SHADE detected.");
+      lastShadeAlert = millis();
     }
   }
 
