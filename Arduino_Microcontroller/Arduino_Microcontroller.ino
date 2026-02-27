@@ -25,6 +25,7 @@ float baselinePower = 3000;
 float baselineLight = 700;
 
 float previousLight = 0;
+float filteredTemp = 0;
 float previousPower = 0;
 
 unsigned long lastOverheatAlert = 0;
@@ -109,9 +110,6 @@ void checkAlerts() {
 }
 
 void loop() {
-  analogReference(DEFAULT);
-  delay(20);
-  analogRead(lightPin); // Throwaway read
   lightVal = smoothLight();
   adjustedLight = 1023 - lightVal;
   powerVal = ina219.getPower_mW();
@@ -123,12 +121,11 @@ void loop() {
     }
   }
 
-  analogReference(INTERNAL);
-  delay(20);
-  analogRead(tempPin); // Throwaway read
   float tempRaw = smoothTemp();
-  float voltage = tempRaw * (1.1 / 1023.0);
+  float voltage = tempRaw * (5 / 1023.0);
   tempVal = voltage * 100.0;
+  filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
+  tempVal = filteredTemp;
 
   // Send data via Bluetooth
   BTSerial.print(lightVal);   BTSerial.print(",");
