@@ -128,16 +128,16 @@ void loop() {
   tempVal = filteredTemp;
 
   // Send data via Bluetooth
-  BTSerial.print(lightVal);   BTSerial.print(",");
-  BTSerial.print(tempVal);    BTSerial.print(",");
-  BTSerial.print(powerVal);   BTSerial.print(",");
-  BTSerial.println(efficiency);
+  BTSerial.print("Amount of Light: "); BTSerial.println(lightVal);
+  BTSerial.print("Temp: "); BTSerial.print(tempVal); BTSerial.println(" °C");
+  BTSerial.print("Power: "); BTSerial.print(powerVal); BTSerial.println(" mW");
+  BTSerial.print("Eff: "); BTSerial.print(efficiency); BTSerial.println("%");
 
   // Debug via USB
-  Serial.print("Light: "); Serial.print(lightVal);
-  Serial.print(", Temp: "); Serial.print(tempVal); Serial.print(" C");
-  Serial.print(", Power: "); Serial.print(powerVal); Serial.print(" mW");
-  Serial.print(", Eff: "); Serial.print(efficiency); Serial.println("%");
+  Serial.print("Amount of Light: "); Serial.println(lightVal);
+  Serial.print("Temp: "); Serial.print(tempVal); Serial.println(" °C");
+  Serial.print("Power: "); Serial.print(powerVal); Serial.println(" mW");
+  Serial.print("Eff: "); Serial.print(efficiency); Serial.println("%");
 
   checkAlerts();
 
