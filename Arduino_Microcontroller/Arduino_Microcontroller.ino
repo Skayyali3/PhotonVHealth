@@ -127,12 +127,6 @@ void loop() {
   filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
   tempVal = filteredTemp;
 
-  // Send data via Bluetooth
-  BTSerial.print("Amount of Light: "); BTSerial.println(lightVal);
-  BTSerial.print("Temp: "); BTSerial.print(tempVal); BTSerial.println(" °C");
-  BTSerial.print("Power: "); BTSerial.print(powerVal); BTSerial.println(" mW");
-  BTSerial.print("Eff: "); BTSerial.print(efficiency); BTSerial.println("%");
-
   // Debug via USB
   Serial.print("Amount of Light: "); Serial.println(lightVal);
   Serial.print("Temp: "); Serial.print(tempVal); Serial.println(" °C");
