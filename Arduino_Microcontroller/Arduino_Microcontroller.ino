@@ -1,58 +1,62 @@
 /*
  * PhotonVHealth - Solar Panel Efficiency Monitoring System
- * Bluetooth MVP + Hardware Button for Baseline
- * Arduino UNO
- */
+ * Bluetooth MVP (Future insha'Allah is using an ESP32)
+ * Arduino UNO Microcontroller
+*/
 
 #include <Wire.h>
 #include <Adafruit_INA219.h>
 #include <SoftwareSerial.h>
 
-SoftwareSerial BTSerial(10, 11); // RX, TX for Bluetooth
+SoftwareSerial BTSerial(10, 11);
 Adafruit_INA219 ina219;
 
-// Pins
 const int lightPin = A0;
 const int tempPin  = A1;
 const int baselineButtonPin = 2;
 
-// Sensor and efficiency variables
 float lightVal = 0;
 float tempVal = 0;
 float powerVal = 0;
 float efficiency = 0;
 float adjustedLight = 0;
 
-// Baseline values
-float baselinePower = 3000;  // initial baseline power in mW
-float baselineLight = 700;   // initial baseline light value
+float baselinePower = 3000;
+float baselineLight = 700;
 
-// Previous readings for shade detection
 float previousLight = 0;
 float previousPower = 0;
 
-// Timing for alerts
 unsigned long lastOverheatAlert = 0;
 unsigned long lastDustAlert = 0;
 unsigned long lastShadeAlert = 0;
-unsigned long alertCooldown = 60000; // 1 minute
+unsigned long alertCooldown = 60000;
 
-// Button state
 int lastButtonState = LOW;
 int buttonState;
 
 float smoothLight() {
   float sum = 0;
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 20; i++) {
     sum += analogRead(lightPin);
     delay(5);
   }
-  return sum / 10.0;
+  return sum / 20.0;
+}
+
+float smoothTemp() {
+    float sum = 0;
+    for (int i = 0; i < 20; i++) {
+        sum += analogRead(tempPin);
+        delay(5);
+    }
+    return (sum / 20.0);
 }
 
 void setup() {
   Serial.begin(9600);
   BTSerial.begin(9600);
+  BTSerial.println("PhotonVHealth Online");
   ina219.begin();
   pinMode(baselineButtonPin, INPUT_PULLUP);
 }
@@ -71,13 +75,14 @@ void checkAlerts() {
     return;
   }
 
-  // Night mode
-  if (lightVal < 50) return;
+  float current_mA = ina219.getCurrent_mA();
+
+  if (adjustedLight < 150) return;
+  if (current_mA < 10) return; // Prevents alerts when battery (or whatever load used is) is full
 
   float lightChange = previousLight - adjustedLight;
   float powerChange = previousPower - powerVal;
 
-  // Overheat alert
   if (tempVal > 45 && efficiency < 90) {
     if (millis() - lastOverheatAlert > alertCooldown) {
       BTSerial.println("ALERT: Panel OVERHEATING!");
@@ -85,7 +90,6 @@ void checkAlerts() {
     }
   }
 
-  // Dust alert
   if (adjustedLight > baselineLight * 0.8 && efficiency < 75) {
     if (millis() - lastDustAlert > alertCooldown) {
         BTSerial.println("ALERT: Dust suspected, clean panel.");
@@ -93,7 +97,6 @@ void checkAlerts() {
     }
   }
 
-  // Shade alert
   if (lightChange > 200 && powerChange > (previousPower * 0.2)) {
     if (millis() - lastShadeAlert > alertCooldown) {
       BTSerial.println("ALERT: Sudden SHADE detected.");
@@ -106,17 +109,12 @@ void checkAlerts() {
 }
 
 void loop() {
+  analogReference(DEFAULT);
+  delay(20);
+  analogRead(lightPin); // Throwaway read
   lightVal = smoothLight();
-
-  float tempRaw = analogRead(tempPin);
-  float voltage = tempRaw * (5.0 / 1023.0);
-  tempVal = voltage * 100.0;
-
-  float busVoltage = ina219.getBusVoltage_V();
-  float current_mA = ina219.getCurrent_mA();
-  powerVal = ina219.getPower_mW();
-
   adjustedLight = 1023 - lightVal;
+  powerVal = ina219.getPower_mW();
 
   if (baselineLight > 0 && baselinePower > 0) {
     float expectedPower = baselinePower * (adjustedLight / baselineLight);
@@ -124,6 +122,13 @@ void loop() {
       efficiency = (powerVal / expectedPower) * 100.0;
     }
   }
+
+  analogReference(INTERNAL);
+  delay(20);
+  analogRead(tempPin); // Throwaway read
+  float tempRaw = smoothTemp();
+  float voltage = tempRaw * (1.1 / 1023.0);
+  tempVal = voltage * 100.0;
 
   // Send data via Bluetooth
   BTSerial.print(lightVal);   BTSerial.print(",");
