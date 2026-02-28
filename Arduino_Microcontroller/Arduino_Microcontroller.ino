@@ -38,6 +38,7 @@ int buttonState;
 
 float smoothLight() {
   float sum = 0;
+  analogReference(DEFAULT);
   for (int i = 0; i < 20; i++) {
     sum += analogRead(lightPin);
     delay(5);
@@ -47,11 +48,12 @@ float smoothLight() {
 
 float smoothTemp() {
     float sum = 0;
+    analogReference(INTERNAL);
     for (int i = 0; i < 20; i++) {
         sum += analogRead(tempPin);
         delay(5);
     }
-    return (sum / 20.0);
+    return (sum / 20.0) * (1.1 / 1023.0) * 100.0;
 }
 
 void setup() {
@@ -60,6 +62,7 @@ void setup() {
   BTSerial.println("PhotonVHealth Online");
   ina219.begin();
   pinMode(baselineButtonPin, INPUT_PULLUP);
+  filteredTemp = smoothTemp();
 }
 
 void updateBaseline() {
@@ -93,7 +96,7 @@ void checkAlerts() {
 
   if (adjustedLight > baselineLight * 0.8 && efficiency < 75) {
     if (millis() - lastDustAlert > alertCooldown) {
-        BTSerial.println("ALERT: Dust suspected, clean panel.");
+        BTSerial.println("ALERT: Dust suspected, clean the panel.");
         lastDustAlert = millis();
     }
   }
@@ -121,9 +124,7 @@ void loop() {
     }
   }
 
-  float tempRaw = smoothTemp();
-  float voltage = tempRaw * (5 / 1023.0);
-  tempVal = voltage * 100.0;
+  tempVal = smoothTemp();
   filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
   tempVal = filteredTemp;
 
@@ -139,6 +140,7 @@ void loop() {
   if (buttonState == LOW && lastButtonState == HIGH) {
     updateBaseline();
   }
+
   lastButtonState = buttonState;
 
   delay(2000);
