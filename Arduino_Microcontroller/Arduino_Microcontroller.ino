@@ -39,6 +39,8 @@ int buttonState;
 float smoothLight() {
   float sum = 0;
   analogReference(DEFAULT);
+  analogRead(lightPin); // Dummy read to settle the ADC
+  delay(50);
   for (int i = 0; i < 20; i++) {
     sum += analogRead(lightPin);
     delay(5);
@@ -49,6 +51,8 @@ float smoothLight() {
 float smoothTemp() {
     float sum = 0;
     analogReference(INTERNAL);
+    analogRead(tempPin); // Dummy read to settle the ADC
+    delay(50);
     for (int i = 0; i < 20; i++) {
         sum += analogRead(tempPin);
         delay(5);
@@ -59,7 +63,7 @@ float smoothTemp() {
 void setup() {
   Serial.begin(9600);
   BTSerial.begin(9600);
-  BTSerial.println("PhotonVHealth Online");
+  BTSerial.println("PhotonVHealth is Online via Bluetooth");
   ina219.begin();
   pinMode(baselineButtonPin, INPUT_PULLUP);
   filteredTemp = smoothTemp();
@@ -128,9 +132,11 @@ void loop() {
   filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
   tempVal = filteredTemp;
 
-  // Debug via USB
-  Serial.print("Amount of Light: "); Serial.println(lightVal);
-  Serial.print("Temp: "); Serial.print(tempVal); Serial.println(" °C");
+  float lightPercent = (adjustedLight / 1023.0) * 100.0;
+
+  Serial.print("Light Intensity: "); Serial.print(lightPercent); Serial.println("%");
+  Serial.print("Amount of Light: "); Serial.print(lightVal); Serial.println(" a.u.");
+  Serial.print("Temp: "); Serial.print(tempVal); Serial.println("°C");
   Serial.print("Power: "); Serial.print(powerVal); Serial.println(" mW");
   Serial.print("Eff: "); Serial.print(efficiency); Serial.println("%");
 
