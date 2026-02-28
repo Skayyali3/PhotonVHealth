@@ -11,50 +11,52 @@
 SoftwareSerial BTSerial(10, 11);
 Adafruit_INA219 ina219;
 
-const int lightPin = A0;
-const int tempPin  = A1;
-const int baselineButtonPin = 2;
+const int lightpin = A0;
+const int temppin  = A1;
+const int baselinebuttonpin = 2;
 
-float lightVal = 0;
-float tempVal = 0;
-float powerVal = 0;
+float lightval = 0;
+float tempval = 0;
+float powerval = 0;
 float efficiency = 0;
-float adjustedLight = 0;
+float adjustedlight = 0;
 
-float baselinePower = 3000;
-float baselineLight = 700;
+float baselinepower = 3000;
+float baselinelight = 700;
 
-float previousLight = 0;
-float filteredTemp = 0;
-float previousPower = 0;
+float previouslight = 0;
+float filteredtemp = 0;
+float previouspower = 0;
 
-unsigned long lastOverheatAlert = 0;
-unsigned long lastDustAlert = 0;
-unsigned long lastShadeAlert = 0;
-unsigned long alertCooldown = 60000;
+unsigned long lastoverheatalert = 0;
+unsigned long lastdustalert = 0;
+unsigned long lastshadealert = 0;
+unsigned long alertcooldown = 60000;
+unsigned long lastdisplaytime = 0;
+const unsigned long displayinterval = 2000;
 
-int lastButtonState = LOW;
-int buttonState;
+int lastbuttonstate = LOW;
+int buttonstate;
 
-float smoothLight() {
+float smoothlight() {
   float sum = 0;
   analogReference(DEFAULT);
-  analogRead(lightPin); // Dummy read to settle the ADC
+  analogRead(lightpin); // Dummy read to settle the ADC
   delay(50);
   for (int i = 0; i < 20; i++) {
-    sum += analogRead(lightPin);
+    sum += analogRead(lightpin);
     delay(5);
   }
   return sum / 20.0;
 }
 
-float smoothTemp() {
+float smoothtemp() {
     float sum = 0;
     analogReference(INTERNAL);
-    analogRead(tempPin); // Dummy read to settle the ADC
+    analogRead(temppin); // Dummy read to settle the ADC
     delay(50);
     for (int i = 0; i < 20; i++) {
-        sum += analogRead(tempPin);
+        sum += analogRead(temppin);
         delay(5);
     }
     return (sum / 20.0) * (1.1 / 1023.0) * 100.0;
@@ -65,89 +67,90 @@ void setup() {
   BTSerial.begin(9600);
   BTSerial.println("PhotonVHealth is Online via Bluetooth");
   ina219.begin();
-  pinMode(baselineButtonPin, INPUT_PULLUP);
-  filteredTemp = smoothTemp();
+  pinMode(baselinebuttonpin, INPUT_PULLUP);
+  filteredtemp = smoothtemp();
 }
 
-void updateBaseline() {
-  baselinePower = powerVal;
-  baselineLight = 1023 - lightVal;
+void updatebaseline() {
+  baselinepower = powerval;
+  baselinelight = 1023 - lightval;
   BTSerial.println("BASELINE UPDATED");
   Serial.println("Baseline updated!");
 }
 
-void checkAlerts() {
-  if (previousLight == 0 && previousPower == 0) {
-    previousLight = adjustedLight;
-    previousPower = powerVal;
+void checkalerts() {
+  if (previouslight == 0 && previouspower == 0) {
+    previouslight = adjustedlight;
+    previouspower = powerval;
     return;
   }
 
   float current_mA = ina219.getCurrent_mA();
 
-  if (adjustedLight < 150) return;
+  if (adjustedlight < 150) return;
   if (current_mA < 10) return; // Prevents alerts when battery (or whatever load used is) is full
 
-  float lightChange = previousLight - adjustedLight;
-  float powerChange = previousPower - powerVal;
+  float lightchange = previouslight - adjustedlight;
+  float powerchange = previouspower - powerval;
 
-  if (tempVal > 45 && efficiency < 90) {
-    if (millis() - lastOverheatAlert > alertCooldown) {
+  if (tempval > 45 && efficiency < 90) {
+    if (millis() - lastoverheatalert > alertcooldown) {
       BTSerial.println("ALERT: Panel OVERHEATING!");
-      lastOverheatAlert = millis();
+      lastoverheatalert = millis();
     }
   }
 
-  if (adjustedLight > baselineLight * 0.8 && efficiency < 75) {
-    if (millis() - lastDustAlert > alertCooldown) {
+  if (adjustedlight > baselinelight * 0.8 && efficiency < 75) {
+    if (millis() - lastdustalert > alertcooldown) {
         BTSerial.println("ALERT: Dust suspected, clean the panel.");
-        lastDustAlert = millis();
+        lastdustalert = millis();
     }
   }
 
-  if (lightChange > 200 && powerChange > (previousPower * 0.2)) {
-    if (millis() - lastShadeAlert > alertCooldown) {
+  if (lightchange > 200 && powerchange > (previouspower * 0.2)) {
+    if (millis() - lastshadealert > alertcooldown) {
       BTSerial.println("ALERT: Sudden SHADE detected.");
-      lastShadeAlert = millis();
+      lastshadealert = millis();
     }
   }
 
-  previousLight = adjustedLight;
-  previousPower = powerVal;
+  previouslight = adjustedlight;
+  previouspower = powerval;
 }
 
 void loop() {
-  lightVal = smoothLight();
-  adjustedLight = 1023 - lightVal;
-  powerVal = ina219.getPower_mW();
+  buttonstate = digitalRead(baselinebuttonpin);
+  if (buttonstate == LOW && lastbuttonstate == HIGH) {
+    updatebaseline();
+  }
 
-  if (baselineLight > 0 && baselinePower > 0) {
-    float expectedPower = baselinePower * (adjustedLight / baselineLight);
-    if (expectedPower > 0.01) {
-      efficiency = (powerVal / expectedPower) * 100.0;
+  lastbuttonstate = buttonstate;
+  if (millis() - lastdisplaytime >= displayinterval) {
+    lastdisplaytime = millis();
+
+    lightval = smoothlight();
+    adjustedlight = 1023 - lightval;
+    powerval = ina219.getPower_mW();
+
+    if (baselinelight > 0 && baselinepower > 0) {
+      float expectedpower = baselinepower * (adjustedlight / baselinelight);
+      if (expectedpower > 0.01) {
+        efficiency = (powerval / expectedpower) * 100.0;
+      }
     }
+
+    tempval = smoothtemp();
+    filteredtemp = filteredtemp * 0.9 + tempval * 0.1;
+    tempval = filteredtemp;
+
+    float lightpercent = (adjustedlight / 1023.0) * 100.0;
+
+    Serial.print("Light Intensity: "); Serial.print(lightpercent); Serial.println("%");
+    Serial.print("Amount of Light: "); Serial.print(lightval); Serial.println(" a.u.");
+    Serial.print("Temp: "); Serial.print(tempval); Serial.println("°C");
+    Serial.print("Power: "); Serial.print(powerval); Serial.println(" mW");
+    Serial.print("Eff: "); Serial.print(efficiency); Serial.println("%");
+
+    checkalerts();
   }
-
-  tempVal = smoothTemp();
-  filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
-  tempVal = filteredTemp;
-
-  float lightPercent = (adjustedLight / 1023.0) * 100.0;
-
-  Serial.print("Light Intensity: "); Serial.print(lightPercent); Serial.println("%");
-  Serial.print("Amount of Light: "); Serial.print(lightVal); Serial.println(" a.u.");
-  Serial.print("Temp: "); Serial.print(tempVal); Serial.println("°C");
-  Serial.print("Power: "); Serial.print(powerVal); Serial.println(" mW");
-  Serial.print("Eff: "); Serial.print(efficiency); Serial.println("%");
-
-  checkAlerts();
-
-  buttonState = digitalRead(baselineButtonPin);
-  if (buttonState == LOW && lastButtonState == HIGH) {
-    updateBaseline();
-  }
-
-  lastButtonState = buttonState;
-
-  delay(2000);
 }
