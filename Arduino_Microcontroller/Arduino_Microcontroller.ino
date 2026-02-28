@@ -146,7 +146,7 @@ void loop() {
     float lightpercent = (adjustedlight / 1023.0) * 100.0;
 
     Serial.print("Light Intensity: "); Serial.print(lightpercent); Serial.println("%");
-    Serial.print("Amount of Light: "); Serial.print(lightval); Serial.println(" a.u.");
+    Serial.print("Amount of Light: "); Serial.print(adjustedlight); Serial.println(" a.u.");
     Serial.print("Temp: "); Serial.print(tempval); Serial.println("°C");
     Serial.print("Power: "); Serial.print(powerval); Serial.println(" mW");
     Serial.print("Eff: "); Serial.print(efficiency); Serial.println("%");
