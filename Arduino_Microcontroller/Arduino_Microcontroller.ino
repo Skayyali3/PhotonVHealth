@@ -23,6 +23,7 @@ float adjustedlight = 0;
 
 float baselinepower = 3000;
 float baselinelight = 700;
+float maxhardwarepower = 0;
 
 float previouslight = 0;
 float filteredtemp = 0;
@@ -71,11 +72,24 @@ void setup() {
   filteredtemp = smoothtemp();
 }
 
-void updatebaseline() {
-  baselinepower = powerval;
-  baselinelight = 1023 - lightval;
+void updatebaseline(float p, float l) {
+  baselinepower = p;
+  baselinelight = l;
   BTSerial.println("BASELINE UPDATED");
+  BTSerial.print(baselinepower); BTSerial.print(" mW, ");
+  BTSerial.print(baselinelight); BTSerial.println(" a.u.");
   Serial.println("Baseline updated!");
+}
+
+void handlebluetoothinput() {
+  if (BTSerial.available() > 0) {
+    float input = BTSerial.parseFloat();
+    if (input > 0) {
+      maxhardwarepower = input;
+      updatebaseline(maxhardwarepower, 1023 - smoothlight());
+      BTSerial.print("Max Rating Set To: "); BTSerial.print(maxhardwarepower); BTSerial.println("mW");
+    }
+  }
 }
 
 void checkalerts() {
@@ -119,9 +133,11 @@ void checkalerts() {
 }
 
 void loop() {
+  handlebluetoothinput();
+
   buttonstate = digitalRead(baselinebuttonpin);
   if (buttonstate == LOW && lastbuttonstate == HIGH) {
-    updatebaseline();
+    updatebaseline(INA219.getPower_mW(), 1023 - smoothlight());
   }
 
   lastbuttonstate = buttonstate;
@@ -134,6 +150,11 @@ void loop() {
 
     if (baselinelight > 0 && baselinepower > 0) {
       float expectedpower = baselinepower * (adjustedlight / baselinelight);
+      if (powerval > expectedpower && adjustedlight > 200) {
+          updatebaseline(powerval, adjustedlight);
+          expectedpower = powerval; 
+      }
+      
       if (expectedpower > 0.01) {
         efficiency = (powerval / expectedpower) * 100.0;
       }
