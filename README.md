@@ -33,7 +33,8 @@ don't cause sudden losses in the efficiency of the panel(s) while going unnotice
 
 ---
 
-**LICENSING**
+## LICENSING
+
 This project is licensed under the GNU GPL v3 license, check the **[license file](LICENSE)** for details.
 
 ## Author:
