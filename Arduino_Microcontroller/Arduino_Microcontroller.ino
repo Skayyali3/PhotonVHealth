@@ -86,7 +86,6 @@ void handlebluetoothinput() {
     float input = BTSerial.parseFloat();
     if (input > 0) {
       maxhardwarepower = input;
-      updatebaseline(maxhardwarepower, 1023 - smoothlight());
       BTSerial.print("Max Rating Set To: "); BTSerial.print(maxhardwarepower); BTSerial.println("mW");
     }
   }
@@ -102,7 +101,7 @@ void checkalerts() {
   float current_mA = ina219.getCurrent_mA();
 
   if (adjustedlight < 150) return;
-  if (current_mA < 10) return; // Prevents alerts when battery (or whatever load used is) is full
+  if (current_mA < 20) return; // Prevents alerts when battery (or whatever load used is) is full
 
   float lightchange = previouslight - adjustedlight;
   float powerchange = previouspower - powerval;
@@ -148,9 +147,27 @@ void loop() {
     adjustedlight = 1023 - lightval;
     powerval = ina219.getPower_mW();
 
+    tempval = smoothtemp();
+    filteredtemp = filteredtemp * 0.9 + tempval * 0.1;
+    tempval = filteredtemp;
+
     if (baselinelight > 0 && baselinepower > 0) {
-      float expectedpower = baselinepower * (adjustedlight / baselinelight);
-      if (powerval > expectedpower && adjustedlight > 200) {
+      float lightratio = adjustedlight / baselinelight;
+      // Make it realistic
+  
+      if (lightratio > 1.2) lightratio = 1.2;
+      if (lightratio < 0.1) lightratio = 0.1;
+
+      float baselineExpected = baselinepower * lightratio;
+      float maxExpected = maxhardwarepower * lightratio;
+      float expectedpower;
+      if (maxhardwarepower > 0) {
+        expectedpower = (0.7 * baselineExpected) + (0.3 * maxExpected);
+      } else {
+        expectedpower = baselineExpected;
+      }
+      // good light, low temp & actually higher power than baseline needed to auto-renew baseline
+      if (powerval > baselinepower * 1.1 && adjustedlight > 600 && tempval < 35) {
           updatebaseline(powerval, adjustedlight);
           expectedpower = powerval; 
       }
@@ -160,12 +177,19 @@ void loop() {
       }
     }
 
-    tempval = smoothtemp();
-    filteredtemp = filteredtemp * 0.9 + tempval * 0.1;
-    tempval = filteredtemp;
-
     float lightpercent = (adjustedlight / 1023.0) * 100.0;
+    float health = 0;
 
+    if (maxhardwarepower > 0) {
+      health = (baselinepower / maxhardwarepower) * 100.0;
+    }
+    if (health > 100) {
+      health = 100;
+    }
+
+    Serial.print("Health: ");
+    Serial.print(health);
+    Serial.println("%");
     Serial.print("Light Intensity: "); Serial.print(lightpercent); Serial.println("%");
     Serial.print("Amount of Light: "); Serial.print(adjustedlight); Serial.println(" a.u.");
     Serial.print("Temp: "); Serial.print(tempval); Serial.println("°C");
