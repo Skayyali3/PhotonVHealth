@@ -8,18 +8,20 @@
 #include <Adafruit_INA219.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include "secrets.h"
+#include "secrets.h" // make your own secrets.h file & put in your wifi ssid and pass, make sure not to commit it
 Adafruit_INA219 ina219;
 
 const int lightPin = 34;
 const int tempPin  = 35;
 const int baselinebuttonpin = 2;
 
+float health = 0;
 float lightVal = 0;
 float tempVal = 0;
 float powerVal = 0;
 float efficiency = 0;
 float adjustedLight = 0;
+float percentageLight = 0;
 
 float baselinePower = 3000;
 float baselineLight = 700;
@@ -57,9 +59,46 @@ float smooth_temp() {
     return (sum / 20.0) * (3.3 / 4095.0) * 100.0;
 }
 
+void connectWiFi() {
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nConnected!");
+  Serial.println(WiFi.localIP());
+}
+
+void sendDataToServer() {
+  if (WiFi.status() == WL_CONNECTED) {
+
+    HTTPClient http;
+    http.begin("https://my-app.onrender.com/api/data"); // will change to photonvhealth.onrender.com insha'Allah soon
+
+    http.addHeader("Content-Type", "application/json");
+
+    String json = "{";
+    json += "\"power\":" + String(powerVal) + ",";
+    json += "\"light\":" + String(adjustedLight) + ",";
+    json += "\"perecentage\":" + String(percentageLight) + ",";
+    json += "\"temp\":" + String(tempVal) + ",";
+    json += "\"efficiency\":" + String(efficiency) + ",";
+    json += "\"health\":" + String(health);
+    json += "}";
+
+    int response = http.POST(json);
+
+    http.end();
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   ina219.begin();
+  connectWiFi();
   pinMode(baselinebuttonpin, INPUT_PULLUP);
   filteredTemp = smooth_temp();
 }
@@ -151,8 +190,7 @@ void loop() {
       }
     }
 
-    float percentageLight = (adjustedLight / 4095.0) * 100.0;
-    float health = 0;
+    percentageLight = (adjustedLight / 4095.0) * 100.0;
 
     if (hardwarePowerMax > 0) {
       health = (baselinePower / hardwarePowerMax) * 100.0;
@@ -160,6 +198,8 @@ void loop() {
     if (health > 100) {
       health = 100;
     }
+
+    sendDataToServer();
 
     Serial.print("Health: "); Serial.print(health); Serial.println("%");
     Serial.print("Light Intensity: "); Serial.print(percentageLight); Serial.println("%");
