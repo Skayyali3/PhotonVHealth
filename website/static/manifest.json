@@ -1,0 +1,26 @@
+{
+  "name": "FULLNAME",
+  "short_name": "SHORTNAME",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#008080",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "images/iconx144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "images/iconx192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "images/iconx512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
