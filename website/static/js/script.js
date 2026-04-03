@@ -1,5 +1,10 @@
+async function fetchData() {
+  const res = await fetch('/api/latest');
+  const data = await res.json();
 
+  console.log(data);
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Enter js code
+  setInterval(fetchData, 2000);
 });

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory, Response
+from flask import Flask, render_template, send_from_directory, Response, jsonify, request
 from datetime import datetime
 import os
 
@@ -7,6 +7,18 @@ app = Flask(__name__)
 @app.route('/')
 def index():
   return render_template("index.html")
+
+latest_data = {}
+
+@app.route('/api/data', methods=['POST'])
+def receive_data():
+    global latest_data
+    latest_data = request.json
+    return jsonify({"status": "ok"})
+
+@app.route('/api/latest')
+def get_latest():
+    return jsonify(latest_data)
 
 @app.context_processor
 def inject_year():
