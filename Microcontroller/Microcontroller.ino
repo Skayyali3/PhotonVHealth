@@ -6,39 +6,40 @@
 
 #include <Wire.h>
 #include <Adafruit_INA219.h>
-#include "BluetoothSerial.h"
-BluetoothSerial SerialBT;
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include "secrets.h"
 Adafruit_INA219 ina219;
 
 const int lightPin = 34;
 const int tempPin  = 35;
 const int baselinebuttonpin = 2;
 
-float lightval = 0;
-float tempval = 0;
-float powerval = 0;
+float lightVal = 0;
+float tempVal = 0;
+float powerVal = 0;
 float efficiency = 0;
-float adjustedlight = 0;
+float adjustedLight = 0;
 
-float baselinepower = 3000;
-float baselinelight = 700;
-float maxhardwarepower = 0;
+float baselinePower = 3000;
+float baselineLight = 700;
+float hardwarePowerMax = 0;
 
-float previouslight = 0;
-float filteredtemp = 0;
-float previouspower = 0;
+float previousLight = 0;
+float filteredTemp = 0;
+float previousPower = 0;
 
-unsigned long lastoverheatalert = 0;
-unsigned long lastdustalert = 0;
-unsigned long lastshadealert = 0;
-unsigned long alertcooldown = 60000;
-unsigned long lastdisplaytime = 0;
-const unsigned long displayinterval = 2000;
+unsigned long lastOverheatAlert = 0;
+unsigned long lastDustAlert = 0;
+unsigned long lastShadeAlert = 0;
+unsigned long alertCooldown = 60000;
+unsigned long lastDisplayTime = 0;
+const unsigned long displayInterval = 2000;
 
 int lastbuttonstate = LOW;
 int buttonstate;
 
-float smoothlight() {
+float smooth_light() {
   float sum = 0;
   for (int i = 0; i < 20; i++) {
     sum += analogRead(lightPin);
@@ -47,7 +48,7 @@ float smoothlight() {
   return sum / 20.0;
 }
 
-float smoothtemp() {
+float smooth_temp() {
     float sum = 0;
     for (int i = 0; i < 20; i++) {
         sum += analogRead(tempPin);
@@ -58,137 +59,115 @@ float smoothtemp() {
 
 void setup() {
   Serial.begin(115200);
-  SerialBT.begin("PhotonVHealth");
-  SerialBT.println("PhotonVHealth is Online via Bluetooth");
   ina219.begin();
   pinMode(baselinebuttonpin, INPUT_PULLUP);
-  filteredtemp = smoothtemp();
+  filteredTemp = smooth_temp();
 }
 
-void updatebaseline(float p, float l) {
-  baselinepower = p;
-  baselinelight = l;
-  SerialBT.println("BASELINE UPDATED");
-  SerialBT.print(baselinepower); SerialBT.print(" mW, ");
-  SerialBT.print(baselinelight); SerialBT.println(" a.u.");
+void update_baseline(float p, float l) {
+  baselinePower = p;
+  baselineLight = l;
   Serial.println("Baseline updated!");
 }
 
-void handlebluetoothinput() {
-  if (SerialBT.available() > 0) {
-    float input = SerialBT.parseFloat();
-    if (input > 0) {
-      maxhardwarepower = input;
-      SerialBT.print("Max Rating Set To: "); SerialBT.print(maxhardwarepower); SerialBT.println("mW");
-    }
-  }
-}
-
-void checkalerts() {
-  if (previouslight == 0 && previouspower == 0) {
-    previouslight = adjustedlight;
-    previouspower = powerval;
+void check_alerts() {
+  if (previousLight == 0 && previousPower == 0) {
+    previousLight = adjustedLight;
+    previousPower = powerVal;
     return;
   }
 
   float current_mA = ina219.getCurrent_mA();
 
-  if (adjustedlight < 150) return;
+  if (adjustedLight < 150) return;
   if (current_mA < 20) return; // Prevents alerts when battery (or whatever load used is) is full
 
-  float lightchange = previouslight - adjustedlight;
-  float powerchange = previouspower - powerval;
+  float lightchange = previousLight - adjustedLight;
+  float powerchange = previousPower - powerVal;
 
-  if (tempval > 45 && efficiency < 90) {
-    if (millis() - lastoverheatalert > alertcooldown) {
-      SerialBT.println("ALERT: Panel OVERHEATING!");
-      lastoverheatalert = millis();
+  if (tempVal > 45 && efficiency < 90) {
+    if (millis() - lastOverheatAlert > alertCooldown) {
+      lastOverheatAlert = millis();
     }
   }
 
-  if (adjustedlight > baselinelight * 0.8 && efficiency < 75) {
-    if (millis() - lastdustalert > alertcooldown) {
-        SerialBT.println("ALERT: Dust suspected, clean the panel.");
-        lastdustalert = millis();
+  if (adjustedLight > baselineLight * 0.8 && efficiency < 75) {
+    if (millis() - lastDustAlert > alertCooldown) {
+        lastDustAlert = millis();
     }
   }
 
-  if (lightchange > 200 && powerchange > (previouspower * 0.2)) {
-    if (millis() - lastshadealert > alertcooldown) {
-      SerialBT.println("ALERT: Sudden SHADE detected.");
-      lastshadealert = millis();
+  if (lightchange > 200 && powerchange > (previousPower * 0.2)) {
+    if (millis() - lastShadeAlert > alertCooldown) {
+      lastShadeAlert = millis();
     }
   }
 
-  previouslight = adjustedlight;
-  previouspower = powerval;
+  previousLight = adjustedLight;
+  previousPower = powerVal;
 }
 
 void loop() {
-  handlebluetoothinput();
-
   buttonstate = digitalRead(baselinebuttonpin);
   if (buttonstate == LOW && lastbuttonstate == HIGH) {
-    updatebaseline(INA219.getPower_mW(), 1023 - smoothlight());
+    update_baseline(INA219.getPower_mW(), 1023 - smooth_light());
   }
 
   lastbuttonstate = buttonstate;
-  if (millis() - lastdisplaytime >= displayinterval) {
-    lastdisplaytime = millis();
+  if (millis() - lastDisplayTime >= displayInterval) {
+    lastDisplayTime = millis();
 
-    lightval = smoothlight();
-    adjustedlight = 1023 - lightval;
-    powerval = ina219.getPower_mW();
+    lightVal = smooth_light();
+    adjustedLight = 1023 - lightVal;
+    powerVal = ina219.getPower_mW();
 
-    tempval = smoothtemp();
-    filteredtemp = filteredtemp * 0.9 + tempval * 0.1;
-    tempval = filteredtemp;
+    tempVal = smooth_temp();
+    filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
+    tempVal = filteredTemp;
 
-    if (baselinelight > 0 && baselinepower > 0) {
-      float lightratio = adjustedlight / baselinelight;
+    if (baselineLight > 0 && baselinePower > 0) {
+      float lightRatio = adjustedLight / baselineLight;
       // Make it realistic
   
-      if (lightratio > 1.2) lightratio = 1.2;
-      if (lightratio < 0.1) lightratio = 0.1;
+      if (lightRatio > 1.2) lightRatio = 1.2;
+      if (lightRatio < 0.1) lightRatio = 0.1;
 
-      float baselineExpected = baselinepower * lightratio;
-      float maxExpected = maxhardwarepower * lightratio;
-      float expectedpower;
-      if (maxhardwarepower > 0) {
-        expectedpower = (0.7 * baselineExpected) + (0.3 * maxExpected);
+      float baselineExpected = baselinePower * lightRatio;
+      float maxExpected = hardwarePowerMax * lightRatio;
+      float expectedPower;
+      if (hardwarePowerMax > 0) {
+        expectedPower = (0.7 * baselineExpected) + (0.3 * maxExpected);
       } else {
-        expectedpower = baselineExpected;
+        expectedPower = baselineExpected;
       }
       // good light, low temp & actually higher power than baseline needed to auto-renew baseline
-      if (powerval > baselinepower * 1.1 && adjustedlight > 600 && tempval < 35) {
-          updatebaseline(powerval, adjustedlight);
-          expectedpower = powerval; 
+      if (powerVal > baselinePower * 1.1 && adjustedLight > 600 && tempVal < 35) {
+          update_baseline(powerVal, adjustedLight);
+          expectedPower = powerVal; 
       }
       
-      if (expectedpower > 0.01) {
-        efficiency = (powerval / expectedpower) * 100.0;
+      if (expectedPower > 0.01) {
+        efficiency = (powerVal / expectedPower) * 100.0;
       }
     }
 
-    float lightpercent = (adjustedlight / 4095.0) * 100.0;
+    float percentageLight = (adjustedLight / 4095.0) * 100.0;
     float health = 0;
 
-    if (maxhardwarepower > 0) {
-      health = (baselinepower / maxhardwarepower) * 100.0;
+    if (hardwarePowerMax > 0) {
+      health = (baselinePower / hardwarePowerMax) * 100.0;
     }
     if (health > 100) {
       health = 100;
     }
 
-    Serial.print("Health: ");
-    Serial.print(health);
-    Serial.println("%");
-    Serial.print("Light Intensity: "); Serial.print(lightpercent); Serial.println("%");
-    Serial.print("Amount of Light: "); Serial.print(adjustedlight); Serial.println(" a.u.");
-    Serial.print("Temp: "); Serial.print(tempval); Serial.println("°C");
-    Serial.print("Power: "); Serial.print(powerval); Serial.println(" mW");
+    Serial.print("Health: "); Serial.print(health); Serial.println("%");
+    Serial.print("Light Intensity: "); Serial.print(percentageLight); Serial.println("%");
+    Serial.print("Amount of Light: "); Serial.print(adjustedLight); Serial.println(" a.u.");
+    Serial.print("Temp: "); Serial.print(tempVal); Serial.println("°C");
+    Serial.print("Power: "); Serial.print(powerVal); Serial.println(" mW");
     Serial.print("Eff: "); Serial.print(efficiency); Serial.println("%");
 
-    checkalerts();
+    check_alerts();
   }
 }
