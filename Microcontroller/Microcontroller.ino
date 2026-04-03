@@ -1,15 +1,20 @@
 /*
  * PhotonVHealth - Solar Panel Efficiency Monitoring System
- * Bluetooth MVP (Future insha'Allah is using an ESP32)
- * Arduino UNO Microcontroller
+ * ESP32 Microcontroller Prototyping
 */
 
 #include <Wire.h>
 #include <Adafruit_INA219.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 #include "secrets.h" // make your own secrets.h file & put in your wifi ssid and pass, make sure not to commit it
+
+#define ONE_WIRE_BUS 4
 Adafruit_INA219 ina219;
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensor(&oneWire);
 
 const int lightPin = 34;
 const int tempPin  = 35;
@@ -50,16 +55,13 @@ float smooth_light() {
   return sum / 20.0;
 }
 
-float smooth_temp() {
-    float sum = 0;
-    for (int i = 0; i < 20; i++) {
-        sum += analogRead(tempPin);
-        delay(5);
-    }
-    return (sum / 20.0) * (3.3 / 4095.0) * 100.0;
+float read_temperature() {
+  sensor.requestTemperatures();
+  float tempC = sensor.getTempCByIndex(0);
+  return tempC;
 }
 
-void connectWiFi() {
+void connect_to_wifi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   Serial.print("Connecting to WiFi");
@@ -72,7 +74,7 @@ void connectWiFi() {
   Serial.println(WiFi.localIP());
 }
 
-void sendDataToServer() {
+void data_to_server() {
   if (WiFi.status() == WL_CONNECTED) {
 
     HTTPClient http;
@@ -98,9 +100,10 @@ void sendDataToServer() {
 void setup() {
   Serial.begin(115200);
   ina219.begin();
-  connectWiFi();
+  sensor.begin();
+  connect_to_wifi();
   pinMode(baselinebuttonpin, INPUT_PULLUP);
-  filteredTemp = smooth_temp();
+  filteredTemp = read_temperature();
 }
 
 void update_baseline(float p, float l) {
@@ -149,7 +152,7 @@ void check_alerts() {
 void loop() {
   buttonstate = digitalRead(baselinebuttonpin);
   if (buttonstate == LOW && lastbuttonstate == HIGH) {
-    update_baseline(INA219.getPower_mW(), 1023 - smooth_light());
+    update_baseline(ina219.getPower_mW(), 1023 - smooth_light());
   }
 
   lastbuttonstate = buttonstate;
@@ -160,7 +163,8 @@ void loop() {
     adjustedLight = 1023 - lightVal;
     powerVal = ina219.getPower_mW();
 
-    tempVal = smooth_temp();
+    tempVal = read_temperature();
+
     filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
     tempVal = filteredTemp;
 
@@ -199,7 +203,7 @@ void loop() {
       health = 100;
     }
 
-    sendDataToServer();
+    data_to_server();
 
     Serial.print("Health: "); Serial.print(health); Serial.println("%");
     Serial.print("Light Intensity: "); Serial.print(percentageLight); Serial.println("%");
