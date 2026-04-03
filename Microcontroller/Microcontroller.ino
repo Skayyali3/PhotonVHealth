@@ -6,13 +6,12 @@
 
 #include <Wire.h>
 #include <Adafruit_INA219.h>
-#include <SoftwareSerial.h>
-
-SoftwareSerial BTSerial(10, 11);
+#include "BluetoothSerial.h"
+BluetoothSerial SerialBT;
 Adafruit_INA219 ina219;
 
-const int lightpin = A0;
-const int temppin  = A1;
+const int lightPin = 34;
+const int tempPin  = 35;
 const int baselinebuttonpin = 2;
 
 float lightval = 0;
@@ -41,11 +40,8 @@ int buttonstate;
 
 float smoothlight() {
   float sum = 0;
-  analogReference(DEFAULT);
-  analogRead(lightpin); // Dummy read to settle the ADC
-  delay(50);
   for (int i = 0; i < 20; i++) {
-    sum += analogRead(lightpin);
+    sum += analogRead(lightPin);
     delay(5);
   }
   return sum / 20.0;
@@ -53,20 +49,17 @@ float smoothlight() {
 
 float smoothtemp() {
     float sum = 0;
-    analogReference(INTERNAL);
-    analogRead(temppin); // Dummy read to settle the ADC
-    delay(50);
     for (int i = 0; i < 20; i++) {
-        sum += analogRead(temppin);
+        sum += analogRead(tempPin);
         delay(5);
     }
-    return (sum / 20.0) * (1.1 / 1023.0) * 100.0;
+    return (sum / 20.0) * (3.3 / 4095.0) * 100.0;
 }
 
 void setup() {
-  Serial.begin(9600);
-  BTSerial.begin(9600);
-  BTSerial.println("PhotonVHealth is Online via Bluetooth");
+  Serial.begin(115200);
+  SerialBT.begin("PhotonVHealth");
+  SerialBT.println("PhotonVHealth is Online via Bluetooth");
   ina219.begin();
   pinMode(baselinebuttonpin, INPUT_PULLUP);
   filteredtemp = smoothtemp();
@@ -75,18 +68,18 @@ void setup() {
 void updatebaseline(float p, float l) {
   baselinepower = p;
   baselinelight = l;
-  BTSerial.println("BASELINE UPDATED");
-  BTSerial.print(baselinepower); BTSerial.print(" mW, ");
-  BTSerial.print(baselinelight); BTSerial.println(" a.u.");
+  SerialBT.println("BASELINE UPDATED");
+  SerialBT.print(baselinepower); SerialBT.print(" mW, ");
+  SerialBT.print(baselinelight); SerialBT.println(" a.u.");
   Serial.println("Baseline updated!");
 }
 
 void handlebluetoothinput() {
-  if (BTSerial.available() > 0) {
-    float input = BTSerial.parseFloat();
+  if (SerialBT.available() > 0) {
+    float input = SerialBT.parseFloat();
     if (input > 0) {
       maxhardwarepower = input;
-      BTSerial.print("Max Rating Set To: "); BTSerial.print(maxhardwarepower); BTSerial.println("mW");
+      SerialBT.print("Max Rating Set To: "); SerialBT.print(maxhardwarepower); SerialBT.println("mW");
     }
   }
 }
@@ -108,21 +101,21 @@ void checkalerts() {
 
   if (tempval > 45 && efficiency < 90) {
     if (millis() - lastoverheatalert > alertcooldown) {
-      BTSerial.println("ALERT: Panel OVERHEATING!");
+      SerialBT.println("ALERT: Panel OVERHEATING!");
       lastoverheatalert = millis();
     }
   }
 
   if (adjustedlight > baselinelight * 0.8 && efficiency < 75) {
     if (millis() - lastdustalert > alertcooldown) {
-        BTSerial.println("ALERT: Dust suspected, clean the panel.");
+        SerialBT.println("ALERT: Dust suspected, clean the panel.");
         lastdustalert = millis();
     }
   }
 
   if (lightchange > 200 && powerchange > (previouspower * 0.2)) {
     if (millis() - lastshadealert > alertcooldown) {
-      BTSerial.println("ALERT: Sudden SHADE detected.");
+      SerialBT.println("ALERT: Sudden SHADE detected.");
       lastshadealert = millis();
     }
   }
@@ -177,7 +170,7 @@ void loop() {
       }
     }
 
-    float lightpercent = (adjustedlight / 1023.0) * 100.0;
+    float lightpercent = (adjustedlight / 4095.0) * 100.0;
     float health = 0;
 
     if (maxhardwarepower > 0) {
