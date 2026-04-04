@@ -17,8 +17,6 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensor(&oneWire);
 
 const int lightPin = 34;
-const int tempPin  = 35;
-const int baselinebuttonpin = 2;
 
 float health = 0;
 float lightVal = 0;
@@ -43,14 +41,10 @@ unsigned long alertCooldown = 60000;
 unsigned long lastDisplayTime = 0;
 const unsigned long displayInterval = 2000;
 
-int lastbuttonstate = LOW;
-int buttonstate;
-
 float smooth_light() {
   float sum = 0;
   for (int i = 0; i < 20; i++) {
     sum += analogRead(lightPin);
-    delay(5);
   }
   return sum / 20.0;
 }
@@ -58,6 +52,12 @@ float smooth_light() {
 float read_temperature() {
   sensor.requestTemperatures();
   float tempC = sensor.getTempCByIndex(0);
+
+  if (tempC == DEVICE_DISCONNECTED_C || tempC == 85.0) {
+    Serial.println("Error in temp sensor, falling back to last best temp value.");
+    return filteredTemp;
+  }
+
   return tempC;
 }
 
@@ -85,7 +85,7 @@ void data_to_server() {
     String json = "{";
     json += "\"power\":" + String(powerVal) + ",";
     json += "\"light\":" + String(adjustedLight) + ",";
-    json += "\"perecentage\":" + String(percentageLight) + ",";
+    json += "\"percentage\":" + String(percentageLight) + ",";
     json += "\"temp\":" + String(tempVal) + ",";
     json += "\"efficiency\":" + String(efficiency) + ",";
     json += "\"health\":" + String(health);
@@ -101,8 +101,8 @@ void setup() {
   Serial.begin(115200);
   ina219.begin();
   sensor.begin();
+  sensor.setResolution(12);
   connect_to_wifi();
-  pinMode(baselinebuttonpin, INPUT_PULLUP);
   filteredTemp = read_temperature();
 }
 
@@ -150,17 +150,11 @@ void check_alerts() {
 }
 
 void loop() {
-  buttonstate = digitalRead(baselinebuttonpin);
-  if (buttonstate == LOW && lastbuttonstate == HIGH) {
-    update_baseline(ina219.getPower_mW(), 1023 - smooth_light());
-  }
-
-  lastbuttonstate = buttonstate;
   if (millis() - lastDisplayTime >= displayInterval) {
     lastDisplayTime = millis();
 
     lightVal = smooth_light();
-    adjustedLight = 1023 - lightVal;
+    adjustedLight = 4095 - lightVal;
     powerVal = ina219.getPower_mW();
 
     tempVal = read_temperature();
