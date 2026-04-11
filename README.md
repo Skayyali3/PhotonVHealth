@@ -1,5 +1,11 @@
 # PhotonVHealth - Solar Panel Efficiency Monitoring
 
+---
+
+## NOTE: THIS README IS OUTDATED WHILE DEVELOPMENT IS IN PROGRESS, DON'T TAKE ANY INFORMATION FOUND HERE FOR GRANTED
+
+---
+
 Welcome to PhotonVHealth for solar panel efficiency monitoring, especially useful for DIY project users. My monitor makes sure external factors such as: 
 
 * Dust Accumulation
