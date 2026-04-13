@@ -7,16 +7,12 @@
 #include <Adafruit_INA219.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
 #include "secrets.h" // make your own secrets.h file & put in your wifi ssid and pass, make sure not to commit it
 
-#define ONE_WIRE_BUS 4
 Adafruit_INA219 ina219;
-OneWire oneWire(ONE_WIRE_BUS);
-DallasTemperature sensor(&oneWire);
 
 const int lightPin = 34;
+const int tempPin = 35;
 
 float health = 0;
 float lightVal = 0;
@@ -50,15 +46,28 @@ float smooth_light() {
 }
 
 float read_temperature() {
-  sensor.requestTemperatures();
-  float tempC = sensor.getTempCByIndex(0);
+  long sum = 0;
+  int samples = 50; 
 
-  if (tempC == DEVICE_DISCONNECTED_C || tempC == 85.0) {
-    Serial.println("Error in temp sensor, falling back to last best temp value.");
+  // Dummy read to settle the ADC
+  analogReadMilliVolts(tempPin); 
+  delay(10);
+
+  for (int i = 0; i < samples; i++) {
+    sum += analogReadMilliVolts(tempPin);
+    delay(2); 
+  }
+
+  float average = (float)sum / samples;
+
+  float currentTemp = average / 10.0;
+
+  if (currentTemp <= 0.0 || currentTemp >= 110.0) {
+    Serial.println("Error in LM35 sensor, falling back to last best temp value.");
     return filteredTemp;
   }
 
-  return tempC;
+  return currentTemp;
 }
 
 void connect_to_wifi() {
@@ -100,8 +109,7 @@ void data_to_server() {
 void setup() {
   Serial.begin(115200);
   ina219.begin();
-  sensor.begin();
-  sensor.setResolution(12);
+  analogReadResolution(12);
   connect_to_wifi();
   filteredTemp = read_temperature();
 }
@@ -164,8 +172,8 @@ void loop() {
 
     if (baselineLight > 0 && baselinePower > 0) {
       float lightRatio = adjustedLight / baselineLight;
+
       // Make it realistic
-  
       if (lightRatio > 1.2) lightRatio = 1.2;
       if (lightRatio < 0.1) lightRatio = 0.1;
 
