@@ -39,13 +39,13 @@ const unsigned long displayInterval = 2000;
 
 float smooth_light() {
   float sum = 0;
-  for (int i = 0; i < 20; i++) {
+  for (int i = 0; i < 50; i++) {
     sum += analogRead(lightPin);
   }
-  return sum / 20.0;
+  return sum / 50.0;
 }
 
-float read_temperature() {
+float smooth_temp() {
   long sum = 0;
   int samples = 50; 
 
@@ -111,7 +111,7 @@ void setup() {
   ina219.begin();
   analogReadResolution(12);
   connect_to_wifi();
-  filteredTemp = read_temperature();
+  filteredTemp = smooth_temp();
 }
 
 void update_baseline(float p, float l) {
@@ -127,10 +127,10 @@ void check_alerts() {
     return;
   }
 
-  float current_mA = ina219.getCurrent_mA();
+  float currentVal = ina219.getCurrent_mA();
 
   if (adjustedLight < 150) return;
-  if (current_mA < 20) return; // Prevents alerts when battery (or whatever load used is) is full
+  if (currentVal < 20) return; // Prevents alerts when battery (or whatever load used is) is full
 
   float lightchange = previousLight - adjustedLight;
   float powerchange = previousPower - powerVal;
@@ -165,7 +165,7 @@ void loop() {
     adjustedLight = 4095 - lightVal;
     powerVal = ina219.getPower_mW();
 
-    tempVal = read_temperature();
+    tempVal = smooth_temp();
 
     filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
     tempVal = filteredTemp;
