@@ -6,19 +6,33 @@
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   <link rel="icon" href="{{ url_for('static', filename='images/icon.png') }}" type="image/png">
-  <title></title>
+  <title>PhotonVHealth - Solar Panel Health Monitoring System</title>
 </head>
 
 <body>
-  <h1>Site Name or Image then Site Name</h1>
+  <h1>Welcome to PhotonVHealth - The Solar Panel Health Monitoring System</h1>
+
+  <hr style="border: 1px solid black;">
+  <br><br>
+
+  <div id="dashboard">
+  <h2>Live Data</h2>
+
+    <p>Power: <span id="power">--</span></p>
+    <p>Temperature: <span id="temp">--</span></p>
+    <p>Light: <span id="light">--</span></p>
+    <p>Efficiency: <span id="eff">--</span></p>
+    <p>Health: <span id="health">--</span></p>
+  </div>
+  
   <footer class="site-footer">
     <div class="footer-left">
-      <small>© {{ current_year }} Site Name</small>
+      <small>© {{ current_year }} PhotonVHealth</small>
     </div>
 
     <div class="footer-right">
       <span>Want to help improve this project?</span>
-      <a href="https://github.com/Skayyali3/REPONAME" target="_blank" rel="noopener noreferrer"
+      <a href="https://github.com/Skayyali3/PhotonVHealth" target="_blank" rel="noopener noreferrer"
         class="github-link">
         <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path

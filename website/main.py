@@ -8,17 +8,17 @@ app = Flask(__name__)
 def index():
   return render_template("index.html")
 
-latest_data = {}
+latestData = {}
 
 @app.route('/api/data', methods=['POST'])
 def receive_data():
-    global latest_data
-    latest_data = request.json
+    global latestData
+    latestData = request.json
     return jsonify({"status": "ok"})
 
 @app.route('/api/latest')
 def get_latest():
-    return jsonify(latest_data)
+    return jsonify(latestData)
 
 @app.context_processor
 def inject_year():
