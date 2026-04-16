@@ -1,6 +1,33 @@
 from flask import Flask, render_template, send_from_directory, Response, jsonify, request
 from datetime import datetime
 import os
+import sqlite3
+
+def get_db():
+    return sqlite3.connect("website/data/PhotonVHealth.db")
+
+def init_db():
+    connection = get_db()
+    cursor = connection.cursor()
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS sensor_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id TEXT,
+        power REAL,
+        light REAL,
+        light_intensity REAL,
+        temperature REAL,
+        efficiency REAL,
+        health REAL,
+        created_at TEXT
+    )
+    """)
+    
+    connection.commit()
+    connection.close()
+    
+init_db()
 
 app = Flask(__name__)
 
