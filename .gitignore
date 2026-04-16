@@ -30,4 +30,17 @@ Thumbs.db
 
 # Sensitive information
 secrets.h
-.env
+*.env
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Data
+
+website/data/
