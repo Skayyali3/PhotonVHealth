@@ -40,7 +40,33 @@ latestData = {}
 @app.route('/api/data', methods=['POST'])
 def receive_data():
     global latestData
-    latestData = request.json
+    
+    data = request.json
+    latestData = data
+    
+    connection = get_db()
+    cursor = connection.cursor()
+    
+    cursor.execute("""
+    INSERT INTO sensor_data (
+        device_id, power, light, light_intensity, 
+        temperature, efficiency, health, created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        data.get("device_id"), 
+        data.get("power"),
+        data.get("light"),
+        data.get("light_intensity"),
+        data.get("temperature"),
+        data.get("efficiency"),
+        data.get("health"),
+        datetime.now().isoformat()
+        ))
+    
+    connection.commit()
+    connection.close()
+    
     return jsonify({"status": "ok"})
 
 @app.route('/api/latest')
