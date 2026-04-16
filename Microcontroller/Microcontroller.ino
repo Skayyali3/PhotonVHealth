@@ -37,6 +37,8 @@ unsigned long alertCooldown = 60000;
 unsigned long lastDisplayTime = 0;
 const unsigned long displayInterval = 2000;
 
+String deviceId = "";
+
 float smooth_light() {
   float sum = 0;
   for (int i = 0; i < 50; i++) {
@@ -92,6 +94,7 @@ void data_to_server() {
     http.addHeader("Content-Type", "application/json");
 
     String json = "{";
+    json += "\"device_id\":\"" + deviceId + "\",";
     json += "\"power\":" + String(powerVal) + ",";
     json += "\"light\":" + String(adjustedLight) + ",";
     json += "\"percentage\":" + String(percentageLight) + ",";
@@ -108,6 +111,16 @@ void data_to_server() {
 
 void setup() {
   Serial.begin(115200);
+  uint64_t chipid = ESP.getEfuseMac();
+
+  char idBuffer[20];
+  sprintf(idBuffer, "PVH_%04X%08X",(uint16_t)(chipid >> 32),(uint32_t)chipid);
+
+  deviceId = String(idBuffer);
+
+  Serial.print("Device ID: ");
+  Serial.println(deviceId);
+
   ina219.begin();
   analogReadResolution(12);
   connect_to_wifi();
