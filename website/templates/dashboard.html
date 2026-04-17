@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 
-<head>
-    <title>Dashboard - PhotonVHealth</title>
-</head>
+{% block title %}Dashboard{% endblock %}
 
-<body>
-    <div id="dashboard">
-        <h2>Live Data</h2>
+{% block content %}
 
-        <p>Power: <span id="power">--</span></p>
-        <p>Temperature: <span id="temp">--</span></p>
-        <p>Light: <span id="light">--</span></p>
-        <p>Efficiency: <span id="eff">--</span></p>
-        <p>Health: <span id="health">--</span></p>
-    </div>
+<div id="dashboard">
+    <h2>Live Data</h2>
 
-    <a href="/logout">Log out</a>
-</body>
+    <p>Power: <span id="power">--</span></p>
+    <p>Temperature: <span id="temp">--</span></p>
+    <p>Light: <span id="light">--</span></p>
+    <p>Efficiency: <span id="eff">--</span></p>
+    <p>Health: <span id="health">--</span></p>
+</div>
+
+<a href="/logout" class="btn btn-danger mt-3">Log out</a>
+
+{% endblock %}

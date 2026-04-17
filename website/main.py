@@ -1,4 +1,5 @@
-from flask import Flask, render_template, send_from_directory, Response
+from flask import Flask, render_template, Response, send_from_directory, session, redirect, request 
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 import sqlite3
@@ -18,6 +19,23 @@ DB_PATH = os.path.join(BASE_DIR, "data", "PhotonVHealth.db")
 def get_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return sqlite3.connect(DB_PATH)
+
+def init_db():
+    connection = get_db()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password_hash TEXT
+    )
+    """)
+
+    connection.commit()
+    connection.close()
+
+init_db()
 
 @app.route('/')
 def index():
