@@ -37,35 +37,90 @@ def init_db():
 
 init_db()
 
-@app.route('/')
-def login():
-  return render_template("login.html")
+@app.route("/")
+def homepage():
+    if "user_id" in session:
+        return redirect("/dashboard")
+    return redirect("/login")
 
-@app.route('/signup')
-def signup():
+@app.route("/login", methods = ["GET", "POST"])
+def login():
     if request.method == "GET":
-        return render_template("signup.html")
-    
+        return render_template("login.html", logged_in=False)
+
     username = request.form.get("username")
     password = request.form.get("password")
     
-    hashed = generate_password_hash(password)
-    
+    if not username or not password:
+        return "Username and password required"
+
     connection = get_db()
     cursor = connection.cursor()
+
+    cursor.execute("SELECT id, password_hashed FROM users WHERE username = ?",(username,))
+
+    user = cursor.fetchone()
+    connection.close()
+
+    if user and check_password_hash(user[1], password):
+        session["user_id"] = user[0]
+        session["username"] = username
+        return redirect("/dashboard")
+
+    return "Invalid username or password"
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "GET":
+        return render_template("signup.html", logged_in=False)
+
+    username = request.form.get("username")
+    password = request.form.get("password")
     
+    if not username or not password:
+        return "Username and password required"
+
+    hashed = generate_password_hash(password)
+
+    connection = get_db()
+    cursor = connection.cursor()
+
     try:
-        cursor.execute("""
-        INSERT INTO users (username, password_hashed) 
-        VALUES (?, ?)
-        """, (username, hashed))
-        
+        cursor.execute("INSERT INTO users (username, password_hashed) VALUES (?, ?)",(username, hashed))
         connection.commit()
-    
+
     except sqlite3.IntegrityError:
-        return "Username already exists, please try again"
-    
+        connection.close()
+        return "Username already exists"
+
+    connection.close()
     return redirect("/login")
+
+@app.route("/dashboard")
+def dashboard():
+    if "user_id" not in session:
+        return redirect("/")
+    
+    return render_template("dashboard.html", logged_in = True)
+
+@app.route("/graphs")
+def graphs():
+    if "user_id" not in session:
+        return redirect("/")
+    
+    return render_template("graphs.html", logged_in = True)
+
+@app.route("/devices")
+def devices():
+    if "user_id" not in session:
+        return redirect("/")
+    
+    return render_template("devices.html", logged_in = True)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 @app.context_processor
 def inject_year():
