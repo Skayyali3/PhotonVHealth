@@ -28,7 +28,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
-        password_hash TEXT
+        password_hashed TEXT
     )
     """)
 
@@ -38,8 +38,34 @@ def init_db():
 init_db()
 
 @app.route('/')
-def index():
-  return render_template("index.html")
+def login():
+  return render_template("login.html")
+
+@app.route('/signup')
+def signup():
+    if request.method == "GET":
+        return render_template("signup.html")
+    
+    username = request.form.get("username")
+    password = request.form.get("password")
+    
+    hashed = generate_password_hash(password)
+    
+    connection = get_db()
+    cursor = connection.cursor()
+    
+    try:
+        cursor.execute("""
+        INSERT INTO users (username, password_hashed) 
+        VALUES (?, ?)
+        """, (username, hashed))
+        
+        connection.commit()
+    
+    except sqlite3.IntegrityError:
+        return "Username already exists, please try again"
+    
+    return redirect("/login")
 
 @app.context_processor
 def inject_year():
