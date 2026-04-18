@@ -7,11 +7,31 @@
 <div id="dashboard">
     <h2>Live Data</h2>
 
-    <p>Power: <span id="power">--</span></p>
-    <p>Temperature: <span id="temp">--</span></p>
-    <p>Light: <span id="light">--</span></p>
-    <p>Efficiency: <span id="eff">--</span></p>
-    <p>Health: <span id="health">--</span></p>
+    <div class="card" id="power-card">
+        <div class="card-body">
+            <h5 class="card-title">Power: <span class="card-text" id="power">--</span></h5>
+        </div>
+    </div>
+    <div class="card" id="temp-card">
+        <div class="card-body">
+            <h5 class="card-title">Temperature: <span class="card-text" id="temp">--</span></h5>
+        </div>
+    </div>
+    <div class="card" id="light-card">
+        <div class="card-body">
+            <h5 class="card-title">Light: <span class="card-text" id="light">--</span></h5>
+        </div>
+    </div>
+    <div class="card" id="eff-card">
+        <div class="card-body">
+            <h5 class="card-title">Efficiency: <span class="card-text" id="eff">--</span></h5>
+        </div>
+    </div>
+    <div class="card" id="health-card">
+        <div class="card-body">
+            <h5 class="card-title">Health: <span class="card-text" id="health">--</span></h5>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
