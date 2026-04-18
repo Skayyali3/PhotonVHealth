@@ -89,7 +89,7 @@ void data_to_server() {
   if (WiFi.status() == WL_CONNECTED) {
 
     HTTPClient http;
-    http.begin("https://my-app.onrender.com/api/data"); // will change to photonvhealth.onrender.com insha'Allah soon
+    http.begin("https://photonvhealth.com/api/data");
 
     http.addHeader("Content-Type", "application/json");
 

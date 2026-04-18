@@ -132,7 +132,7 @@ def robots_txt():
 
 @app.route('/sitemap.xml')
 def sitemap():
-    urls = [{'loc': 'https://example.com', 'lastmod': datetime.now().date()}]
+    urls = [{'loc': 'https://photonvhealth.onrender.com', 'lastmod': datetime.now().date()}]
     return Response(render_template('sitemap.xml', urls=urls), mimetype='application/xml')
 
 if __name__ == "__main__":
