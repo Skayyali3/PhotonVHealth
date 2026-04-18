@@ -11,3 +11,5 @@
 ---
 - Add /graphs POST route
 - Make graphs (power over time, light intensity over power, etc)
+---
+- Move to PostgreSQL or MySQL database
