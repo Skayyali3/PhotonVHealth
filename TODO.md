@@ -1,5 +1,5 @@
 # TODO
-
+---
 - Repair panel & enclosure
 ---
 - Add devices table
@@ -8,6 +8,8 @@
 - Multidevice dashboard
 ---
 - Push notifications
+---
+- Add Google indexing
 ---
 - Add /graphs POST route
 - Make graphs (power over time, light intensity over power, etc)
