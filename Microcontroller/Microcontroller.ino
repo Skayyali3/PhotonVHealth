@@ -7,7 +7,7 @@
 #include <Adafruit_INA219.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include "secrets.h" // make your own secrets.h file & put in your wifi ssid and pass, make sure not to commit it
+#include <WiFiManager.h>
 
 Adafruit_INA219 ina219;
 
@@ -49,15 +49,15 @@ float smooth_light() {
 
 float smooth_temp() {
   long sum = 0;
-  int samples = 50; 
+  int samples = 50;
 
   // Dummy read to settle the ADC
-  analogReadMilliVolts(tempPin); 
+  analogReadMilliVolts(tempPin);
   delay(10);
 
   for (int i = 0; i < samples; i++) {
     sum += analogReadMilliVolts(tempPin);
-    delay(2); 
+    delay(2);
   }
 
   float average = (float)sum / samples;
@@ -73,16 +73,13 @@ float smooth_temp() {
 }
 
 void connect_to_wifi() {
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFiManager wifiController;
 
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  bool connected = wifiController.autoConnect("PhotonVHealth-Setup");
+
+  if (!connected) {
+    ESP.restart();
   }
-
-  Serial.println("\nConnected!");
-  Serial.println(WiFi.localIP());
 }
 
 void data_to_server() {
@@ -114,7 +111,7 @@ void setup() {
   uint64_t chipid = ESP.getEfuseMac();
 
   char idBuffer[20];
-  sprintf(idBuffer, "PVH_%04X%08X",(uint16_t)(chipid >> 32),(uint32_t)chipid);
+  sprintf(idBuffer, "PVH_%04X%08X", (uint16_t)(chipid >> 32), (uint32_t)chipid);
 
   deviceId = String(idBuffer);
 
@@ -143,7 +140,7 @@ void check_alerts() {
   float currentVal = ina219.getCurrent_mA();
 
   if (adjustedLight < 150) return;
-  if (currentVal < 20) return; // Prevents alerts when battery (or whatever load used is) is full
+  if (currentVal < 20) return;  // Prevents alerts when battery (or whatever load used is) is full
 
   float lightchange = previousLight - adjustedLight;
   float powerchange = previousPower - powerVal;
@@ -156,7 +153,7 @@ void check_alerts() {
 
   if (adjustedLight > baselineLight * 0.8 && efficiency < 75) {
     if (millis() - lastDustAlert > alertCooldown) {
-        lastDustAlert = millis();
+      lastDustAlert = millis();
     }
   }
 
@@ -200,10 +197,10 @@ void loop() {
       }
       // good light, low temp & actually higher power than baseline needed to auto-renew baseline
       if (powerVal > baselinePower * 1.1 && adjustedLight > 600 && tempVal < 35) {
-          update_baseline(powerVal, adjustedLight);
-          expectedPower = powerVal; 
+        update_baseline(powerVal, adjustedLight);
+        expectedPower = powerVal;
       }
-      
+
       if (expectedPower > 0.01) {
         efficiency = (powerVal / expectedPower) * 100.0;
       }
@@ -220,12 +217,24 @@ void loop() {
 
     data_to_server();
 
-    Serial.print("Health: "); Serial.print(health); Serial.println("%");
-    Serial.print("Light Intensity: "); Serial.print(percentageLight); Serial.println("%");
-    Serial.print("Amount of Light: "); Serial.print(adjustedLight); Serial.println(" a.u.");
-    Serial.print("Temp: "); Serial.print(tempVal); Serial.println("°C");
-    Serial.print("Power: "); Serial.print(powerVal); Serial.println(" mW");
-    Serial.print("Eff: "); Serial.print(efficiency); Serial.println("%");
+    Serial.print("Health: ");
+    Serial.print(health);
+    Serial.println("%");
+    Serial.print("Light Intensity: ");
+    Serial.print(percentageLight);
+    Serial.println("%");
+    Serial.print("Amount of Light: ");
+    Serial.print(adjustedLight);
+    Serial.println(" a.u.");
+    Serial.print("Temp: ");
+    Serial.print(tempVal);
+    Serial.println("°C");
+    Serial.print("Power: ");
+    Serial.print(powerVal);
+    Serial.println(" mW");
+    Serial.print("Eff: ");
+    Serial.print(efficiency);
+    Serial.println("%");
 
     check_alerts();
   }
