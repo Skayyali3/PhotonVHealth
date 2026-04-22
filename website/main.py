@@ -31,6 +31,20 @@ def init_db():
         password_hashed TEXT
     )
     """)
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS devices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        device_id TEXT UNIQUE, 
+        nickname TEXT, 
+        max_power INTEGER,
+        baseline_power INTEGER,
+        baseline_light INTEGER,
+        
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
 
     connection.commit()
     connection.close()
