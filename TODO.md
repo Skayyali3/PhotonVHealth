@@ -17,7 +17,7 @@
 - Add devices table
 - Add /devices POST route
 - Link device to user and allow user to give nicknames to their devices
-- Multidevice dashboard
+- Make a Multidevice dashboard
 - Move health calculation to backend as maximum hardware power is sent by user (input box)
 
 - Add /api/data route for ESP32 to send to
@@ -25,7 +25,9 @@
 
 - Make ESP32 periodically check /api/commands/(device_id) route and send data to /api/data route correctly
 
-- Push notifications
+- Make error handling responsive (no reloads + AJAX display)
+
+- Add Push notifications
 
 - Add Google indexing
 

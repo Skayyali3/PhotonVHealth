@@ -4,4 +4,14 @@
 
 {% block content %}
 <h2 class="page-header">My Devices</h2>
+
+<div class="form-container">
+    <form method="POST" action="/devices">
+        <input name="device_id" placeholder="Device ID" class="form-control">
+        <input name="nickname" placeholder="Nickname" class="form-control">
+        <input name="max_power" placeholder="Max Power" class="form-control">
+
+        <button class="btn btn-primary mt-2">Add Device</button>
+    </form>
+</div>
 {% endblock %}

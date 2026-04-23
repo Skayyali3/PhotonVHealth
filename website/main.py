@@ -129,6 +129,32 @@ def devices():
     if "user_id" not in session:
         return redirect("/")
     
+    if request.method == "GET":
+        return render_template("devices.html", logged_in = True)
+    
+    deviceId = request.form.get("device_id")
+    nickname = request.form.get("nickname")
+    maxPower = request.form.get("max_power")
+    
+    if not deviceId or not nickname or not maxPower:
+        return "Missing fields."
+    
+    connection = get_db()
+    cursor = connection.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO devices (user_id, device_id, nickname, max_power)
+            VALUES (?, ?, ?, ?)             
+        """, (session["user_id"], deviceId, nickname, maxPower))
+        
+        connection.commit()
+    except sqlite3.IntegrityError:
+        connection.close()
+        return "Device already exists."
+    
+    connection.close()
+    
     return render_template("devices.html", logged_in = True)
 
 @app.route("/logout")
