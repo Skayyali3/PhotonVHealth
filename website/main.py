@@ -83,56 +83,53 @@ def homepage():
         return redirect("/dashboard")
     return redirect("/login")
 
-@app.route("/login", methods = ["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
         return render_template("login.html", logged_in=False)
-
+ 
     username = request.form.get("username")
     password = request.form.get("password")
     
     if not username or not password:
-        return "Username and password required"
-
+        return render_template("login.html", logged_in=False, error="Username and password required")
+ 
     connection = get_db()
     cursor = connection.cursor()
-
-    cursor.execute("SELECT id, password_hashed FROM users WHERE username = ?",(username,))
-
+    cursor.execute("SELECT id, password_hashed FROM users WHERE username = ?", (username,))
     user = cursor.fetchone()
     connection.close()
-
+ 
     if user and check_password_hash(user[1], password):
         session["user_id"] = user[0]
         session["username"] = username
         return redirect("/dashboard")
-
-    return "Invalid username or password"
-
+ 
+    return render_template("login.html", logged_in=False, error="Invalid username or password")
+ 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "GET":
         return render_template("signup.html", logged_in=False)
-
+ 
     username = request.form.get("username")
     password = request.form.get("password")
     
     if not username or not password:
-        return "Username and password required"
-
+        return render_template("signup.html", logged_in=False, error="Username and password required")
+ 
     hashed = generate_password_hash(password)
-
+ 
     connection = get_db()
     cursor = connection.cursor()
-
+ 
     try:
-        cursor.execute("INSERT INTO users (username, password_hashed) VALUES (?, ?)",(username, hashed))
+        cursor.execute("INSERT INTO users (username, password_hashed) VALUES (?, ?)", (username, hashed))
         connection.commit()
-
     except sqlite3.IntegrityError:
         connection.close()
-        return "Username already exists"
-
+        return render_template("signup.html", logged_in=False, error="Username already exists")
+ 
     connection.close()
     return redirect("/login")
 

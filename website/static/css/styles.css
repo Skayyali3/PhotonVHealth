@@ -99,6 +99,10 @@ Log in + Sign up Pages
     width: 100%;
 }
 
+.text-custom-blue {
+    color: #008df9;
+}
+
 .form-control {
     margin-bottom: 15px;
 }

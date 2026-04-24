@@ -1,18 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Log in{% endblock %}
-
+ 
 {% block content %}
 <h2 class="page-header">Log in</h2>
-
+ 
 <div class="form-container">
   <form action="/login" method="post" id="login-form">
-    <input name="username" class="form-control" placeholder="Username" >
-    <input name="password" type="password" class="form-control" placeholder="Password">
-
+    <input name="username" class="form-control" placeholder="Username" autocomplete="username">
+    <input name="password" type="password" class="form-control" placeholder="Password" autocomplete="current-password">
     <button class="btn btn-success mt-2" id="login-button">
       <span class="button-text">Log in</span>
     </button>
   </form>
+  {% if error %}
+  <div class="alert alert-danger w-100" style="max-width:400px;">{{ error }}</div>
+  {% endif %}
+  <p class="mt-3 text-white">Don't have an account? <a href="/signup" class="text-custom-blue fw-bold">Sign up</a></p>
 </div>
-
 {% endblock %}
