@@ -1,37 +1,58 @@
 {% extends "base.html" %}
-
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
+<div class="page-content">
+  <h2 class="page-header">Live Data</h2>
 
-<div id="dashboard">
-    <h2 class="page-header">Live Data</h2>
+  {% if devices %}
+  <div id="device-grid">
+    {% for d in devices %}
+    <div class="device-panel" data-device-id="{{ d.device_id }}">
+      <div class="device-panel-header">
+        <span class="device-nickname">{{ d.nickname }}</span>
+        <span class="device-id-badge"><code>{{ d.device_id }}</code></span>
+        <span class="live-dot" title="Waiting for data"></span>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <span class="metric-label">Power</span>
+          <span class="metric-value" data-field="power">--</span>
+          <span class="metric-unit">mW</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Temperature</span>
+          <span class="metric-value" data-field="temp">--</span>
+          <span class="metric-unit">°C</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Light</span>
+          <span class="metric-value" data-field="light">--</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Efficiency</span>
+          <span class="metric-value" data-field="efficiency">--</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="metric-card metric-card--wide">
+          <span class="metric-label">Health</span>
+          <span class="metric-value" data-field="health">--</span>
+          <span class="metric-unit">%</span>
+          <div class="health-bar-track">
+            <div class="health-bar-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="last-seen">Last update: <span class="last-seen-time">Never</span></div>
+    </div>
+    {% endfor %}
+  </div>
 
-    <div class="card" id="power-card">
-        <div class="card-body">
-            <h5 class="card-title">Power: <span class="card-text" id="power">--</span></h5>
-        </div>
-    </div>
-    <div class="card" id="temp-card">
-        <div class="card-body">
-            <h5 class="card-title">Temperature: <span class="card-text" id="temp">--</span></h5>
-        </div>
-    </div>
-    <div class="card" id="light-card">
-        <div class="card-body">
-            <h5 class="card-title">Light: <span class="card-text" id="light">--</span></h5>
-        </div>
-    </div>
-    <div class="card" id="eff-card">
-        <div class="card-body">
-            <h5 class="card-title">Efficiency: <span class="card-text" id="eff">--</span></h5>
-        </div>
-    </div>
-    <div class="card" id="health-card">
-        <div class="card-body">
-            <h5 class="card-title">Health: <span class="card-text" id="health">--</span></h5>
-        </div>
-    </div>
+  {% else %}
+  <p class="text-center text-white mt-5">
+    No devices registered yet. <a href="/devices" class="text-white fw-bold">Add a device</a> to see live data.
+  </p>
+  {% endif %}
 </div>
-
 {% endblock %}

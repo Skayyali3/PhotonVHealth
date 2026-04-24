@@ -137,8 +137,8 @@ def signup():
 def dashboard():
     if "user_id" not in session:
         return redirect("/")
-    
-    return render_template("dashboard.html", logged_in = True)
+    devices = get_user_devices(session["user_id"])
+    return render_template("dashboard.html", logged_in=True, devices=devices)
 
 @app.route("/graphs")
 def graphs():
