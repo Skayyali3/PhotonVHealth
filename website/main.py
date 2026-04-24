@@ -39,10 +39,24 @@ def init_db():
         device_id TEXT UNIQUE, 
         nickname TEXT, 
         max_power INTEGER,
-        baseline_power INTEGER,
-        baseline_light INTEGER,
-        
+        baseline_power REAL DEFAULT 0,
+        baseline_light REAL DEFAULT 0,
         FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS sensor_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id TEXT,
+        power REAL,
+        light REAL,
+        light_percentage REAL,
+        temp REAL,
+        efficiency REAL,
+        health REAL,
+        recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(device_id) REFERENCES devices(device_id)
     )
     """)
 
@@ -124,7 +138,7 @@ def graphs():
     
     return render_template("graphs.html", logged_in = True)
 
-@app.route("/devices")
+@app.route("/devices", methods = ["GET", "POST"])
 def devices():
     if "user_id" not in session:
         return redirect("/")
