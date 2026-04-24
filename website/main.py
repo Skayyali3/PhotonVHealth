@@ -62,6 +62,18 @@ def init_db():
 
     connection.commit()
     connection.close()
+    
+def get_user_devices(user_id):
+    connection = get_db()
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT device_id, nickname, max_power, baseline_power, baseline_light
+        FROM devices WHERE user_id = ?
+    """, (user_id,))
+    rows = cursor.fetchall()
+    connection.close()
+    
+    return [{"device_id": r[0],"nickname":  r[1],"max_power": r[2],"baseline_power": r[3],"baseline_light": r[4],} for r in rows]
 
 init_db()
 
