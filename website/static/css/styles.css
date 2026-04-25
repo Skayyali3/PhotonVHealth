@@ -230,3 +230,38 @@ Dashboard
     color: #aaa;
     text-align: right;
 }
+
+/*
+Devices
+*/
+
+.devices-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 1.5rem;
+}
+ 
+.devices-table {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    min-width: 480px;
+}
+ 
+.devices-table thead th {
+    background-color: #f8f9fa;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #555;
+    border-bottom: 2px solid #dee2e6;
+}
+ 
+.devices-table td code {
+    background: #f1f3f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    color: #333;
+    word-break: break-all;
+}

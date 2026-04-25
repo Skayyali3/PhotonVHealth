@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Response, send_from_directory, session, redirect, request 
+from flask import Flask, render_template, Response, send_from_directory, session, redirect, request , jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
@@ -151,34 +151,170 @@ def graphs():
 def devices():
     if "user_id" not in session:
         return redirect("/")
-    
+ 
     if request.method == "GET":
-        return render_template("devices.html", logged_in = True)
-    
-    deviceId = request.form.get("device_id")
-    nickname = request.form.get("nickname")
-    maxPower = request.form.get("max_power")
-    
-    if not deviceId or not nickname or not maxPower:
-        return "Missing fields."
-    
+        userDevices = get_user_devices(session["user_id"])
+        return render_template("devices.html", logged_in=True, devices=userDevices)
+ 
+    deviceID = request.form.get("device_id", "").strip()
+    nickname  = request.form.get("nickname", "").strip()
+    maxPower = request.form.get("max_power", "").strip()
+    isAJAX   = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+ 
+    if not deviceID or not nickname or not maxPower:
+        if isAJAX:
+            return jsonify(success=False, error="All fields are required."), 400
+        userDevices = get_user_devices(session["user_id"])
+        return render_template("devices.html", logged_in=True, devices=userDevices, error="All fields are required.")
+ 
     connection = get_db()
     cursor = connection.cursor()
-    
+ 
     try:
         cursor.execute("""
             INSERT INTO devices (user_id, device_id, nickname, max_power)
-            VALUES (?, ?, ?, ?)             
-        """, (session["user_id"], deviceId, nickname, maxPower))
-        
+            VALUES (?, ?, ?, ?)
+        """, (session["user_id"], deviceID, nickname, maxPower))
         connection.commit()
     except sqlite3.IntegrityError:
         connection.close()
-        return "Device already exists."
-    
+        if isAJAX:
+            return jsonify(success=False, error="A device with that ID already exists."), 409
+        userDevices = get_user_devices(session["user_id"])
+        return render_template("devices.html", logged_in=True, devices=userDevices, error="A device with that ID already exists.")
+ 
     connection.close()
-    
-    return render_template("devices.html", logged_in = True)
+ 
+    if isAJAX:
+        return jsonify(success=True, device={"device_id": deviceID,"nickname":  nickname,"max_power": maxPower,})
+ 
+    userDevices = get_user_devices(session["user_id"])
+    return render_template("devices.html", logged_in=True, devices=userDevices)
+
+@app.route("/devices/<device_id>", methods=["DELETE"])
+def delete_device(deviceId):
+    if "user_id" not in session:
+        return jsonify(success=False, error="Unauthorized"), 401
+ 
+    connection = get_db()
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM devices WHERE device_id = ? AND user_id = ?",(deviceId, session["user_id"]))
+    connection.commit()
+    deleted = cursor.rowcount
+    connection.close()
+ 
+    if deleted:
+        return jsonify(success=True)
+    return jsonify(success=False, error="Device not found"), 404
+
+@app.route("/api/data", methods=["POST"])
+def api_data():
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify(success=False, error="Expected JSON"), 400
+ 
+    device_id = data.get("device_id")
+    if not device_id:
+        return jsonify(success=False, error="device_id required"), 400
+ 
+    connection = get_db()
+    cursor = connection.cursor()
+ 
+    cursor.execute("""
+        SELECT max_power, baseline_power, baseline_light
+        FROM devices WHERE device_id = ?
+    """, (device_id,))
+    row = cursor.fetchone()
+ 
+    if not row:
+        connection.close()
+        return jsonify(success=False, error="Unknown device"), 404
+ 
+    max_power_hw, baseline_power, baseline_light = row
+ 
+    power     = float(data.get("power", 0))
+    light     = float(data.get("light", 0))
+    light_pct = float(data.get("percentage", 0))
+    temp      = float(data.get("temp", 0))
+    efficiency = float(data.get("efficiency", 0))
+
+    health = 0.0
+    if max_power_hw and max_power_hw > 0 and baseline_power and baseline_power > 0:
+        health = min((baseline_power / max_power_hw) * 100.0, 100.0)
+
+    if power > (baseline_power or 0) * 1.1 and light > 600 and temp < 35:
+        cursor.execute("""
+            UPDATE devices SET baseline_power = ?, baseline_light = ?
+            WHERE device_id = ?
+        """, (power, light, device_id))
+ 
+    cursor.execute("""
+        INSERT INTO sensor_data (device_id, power, light, light_percentage, temp, efficiency, health)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (device_id, power, light, light_pct, temp, efficiency, health))
+ 
+    connection.commit()
+    connection.close()
+ 
+    return jsonify(success=True, health=round(health, 1))
+ 
+@app.route("/api/latest/<device_id>")
+def api_latest(device_id):
+    if "user_id" not in session:
+        return jsonify(success=False, error="Unauthorized"), 401
+ 
+    connection = get_db()
+    cursor = connection.cursor()
+ 
+    cursor.execute(
+        "SELECT nickname FROM devices WHERE device_id = ? AND user_id = ?",
+        (device_id, session["user_id"])
+    )
+    device = cursor.fetchone()
+    if not device:
+        connection.close()
+        return jsonify(success=False, error="Not found"), 404
+ 
+    cursor.execute("""
+        SELECT power, light_percentage, temp, efficiency, health, recorded_at
+        FROM sensor_data WHERE device_id = ?
+        ORDER BY recorded_at DESC LIMIT 1
+    """, (device_id,))
+    row = cursor.fetchone()
+    connection.close()
+ 
+    if not row:
+        return jsonify(success=True, data=None)
+ 
+    return jsonify(success=True, data={
+        "power":      row[0],
+        "light":      row[1],
+        "temp":       row[2],
+        "efficiency": row[3],
+        "health":     row[4],
+        "recorded_at": row[5],
+    })
+ 
+@app.route("/api/commands/<device_id>")
+def api_commands(device_id):
+    connection = get_db()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT baseline_power, baseline_light FROM devices WHERE device_id = ?",
+        (device_id,)
+    )
+    row = cursor.fetchone()
+    connection.close()
+ 
+    if not row:
+        return jsonify(success=False, error="Unknown device"), 404
+ 
+    return jsonify(
+        success=True,
+        renew_baseline=False,
+        baseline_power=row[0] or 0,
+        baseline_light=row[1] or 0,
+    )
 
 @app.route("/logout")
 def logout():

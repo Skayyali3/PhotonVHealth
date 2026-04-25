@@ -1,17 +1,64 @@
 {% extends "base.html" %}
-
 {% block title %}My Devices{% endblock %}
 
 {% block content %}
-<h2 class="page-header">My Devices</h2>
+<div class="page-content">
+  <h2 class="page-header">My Devices</h2>
 
-<div class="form-container">
-    <form method="POST" action="/devices">
-        <input name="device_id" placeholder="Device ID" class="form-control">
-        <input name="nickname" placeholder="Nickname" class="form-control">
-        <input name="max_power" placeholder="Max Power" class="form-control">
+  <div class="form-container">
+    <div id="form-alert" class="alert alert-danger d-none" role="alert"></div>
 
-        <button class="btn btn-primary mt-2">Add Device</button>
+    <form id="add-device-form" novalidate>
+      <div class="row g-2 justify-content-center">
+        <div class="col-12 col-sm-6 col-md-3">
+          <input name="device_id" id="f-device-id" placeholder="Device ID" class="form-control" required>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          <input name="nickname" id="f-nickname" placeholder="Nickname" class="form-control" required>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          <input name="max_power" id="f-max-power" placeholder="Max Power (mW)" type="number" min="1" step="0.1" class="form-control" required>
+        </div>
+        <div class="col-12 col-sm-6 col-md-2">
+          <button class="btn btn-primary w-100" type="submit" id="add-btn">
+            <span class="btn-label">Add Device</span>
+            <span class="spinner-border spinner-border-sm d-none" id="add-spinner" role="status"></span>
+          </button>
+        </div>
+      </div>
     </form>
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+  </div>
+
+  <div class="devices-table-wrap">
+    {% if devices %}
+    <table class="table table-hover align-middle devices-table" id="devices-table">
+      <thead>
+        <tr>
+          <th>Nickname</th>
+          <th>Device ID</th>
+          <th>Max Power (mW)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="devices-tbody">
+        {% for d in devices %}
+        <tr data-id="{{ d.device_id }}">
+          <td class="fw-semibold">{{ d.nickname }}</td>
+          <td><code>{{ d.device_id }}</code></td>
+          <td>{{ d.max_power }}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-danger delete-btn" data-id="{{ d.device_id }}">Remove</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-center text-white mt-4" id="empty-msg">No devices added yet. Register your first device above.</p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

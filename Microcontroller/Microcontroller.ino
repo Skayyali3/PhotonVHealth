@@ -108,6 +108,7 @@ void data_to_server() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.println("PhotonVHealth Setup: Initialized...");
   uint64_t chipid = ESP.getEfuseMac();
 
   char idBuffer[20];
