@@ -6,8 +6,6 @@
   <h2 class="page-header">My Devices</h2>
 
   <div class="form-container">
-    <div id="form-alert" class="alert alert-danger d-none" role="alert"></div>
-
     <form id="add-device-form" novalidate>
       <div class="row g-2 justify-content-center">
         <div class="col-12 col-sm-6 col-md-3">
@@ -27,6 +25,7 @@
         </div>
       </div>
     </form>
+    <div id="form-alert" class="alert alert-danger d-none" role="alert"></div>
     {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
@@ -39,7 +38,7 @@
         <tr>
           <th>Nickname</th>
           <th>Device ID</th>
-          <th>Max Power (mW)</th>
+          <th>Max Power (milliWatts)</th>
           <th></th>
         </tr>
       </thead>

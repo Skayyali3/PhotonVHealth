@@ -112,6 +112,30 @@ void data_to_server() {
   http.end();
 }
 
+void register_device() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  HTTPClient http;
+  http.begin("https://photonvhealth.onrender.com/api/register_device");
+  http.addHeader("Content-Type", "application/json");
+
+  String json = "{";
+  json += "\"device_id\":\"" + deviceId + "\"";
+  json += "}";
+
+  int code = http.POST(json);
+
+  if (code == 200) {
+    String body = http.getString();
+    Serial.println("Register response: " + body);
+  } else {
+    Serial.print("Device registration failed: ");
+    Serial.println(code);
+  }
+
+  http.end();
+}
+
 void check_commands() {
   if (WiFi.status() != WL_CONNECTED) return;
 
@@ -208,6 +232,8 @@ void setup() {
   connect_to_wifi();
 
   filteredTemp = smooth_temp();
+
+  register_device()
 
   check_commands();
 }

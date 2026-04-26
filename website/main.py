@@ -60,6 +60,8 @@ def init_db():
         FOREIGN KEY(device_id) REFERENCES devices(device_id)
     )
     """)
+    
+    cursor.execute("CREATE TABLE IF NOT EXISTS registered_devices (device_id TEXT PRIMARY KEY)")
 
     connection.commit()
     connection.close()
@@ -148,49 +150,103 @@ def graphs():
     
     return render_template("graphs.html", logged_in = True)
 
-@app.route("/devices", methods = ["GET", "POST"])
+@app.route("/devices", methods=["GET", "POST"])
 def devices():
     if "user_id" not in session:
         return redirect("/")
- 
+
     if request.method == "GET":
-        userDevices = get_user_devices(session["user_id"])
-        return render_template("devices.html", logged_in=True, devices=userDevices)
- 
+        return render_template(
+            "devices.html",
+            logged_in=True,
+            devices=get_user_devices(session["user_id"])
+        )
+
     deviceID = request.form.get("device_id", "").strip()
-    nickname  = request.form.get("nickname", "").strip()
+    nickname = request.form.get("nickname", "").strip()
     maxPower = request.form.get("max_power", "").strip()
-    isAJAX   = request.headers.get("X-Requested-With") == "XMLHttpRequest"
- 
+    isAJAX = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     if not deviceID or not nickname or not maxPower:
+        msg = "All fields are required."
         if isAJAX:
-            return jsonify(success=False, error="All fields are required."), 400
-        userDevices = get_user_devices(session["user_id"])
-        return render_template("devices.html", logged_in=True, devices=userDevices, error="All fields are required.")
- 
+            return jsonify(success=False, error=msg), 400
+        return render_template("devices.html", logged_in=True, devices=get_user_devices(session["user_id"]), error=msg)
+
     connection = get_db()
     cursor = connection.cursor()
- 
+
+    cursor.execute(
+        "SELECT 1 FROM registered_devices WHERE device_id = ?",
+        (deviceID,)
+    )
+    exists = cursor.fetchone()
+
+    if not exists:
+        connection.close()
+        msg = "This device is not a shipped/registered product."
+
+        if isAJAX:
+            return jsonify(success=False, error=msg), 403
+
+        return render_template(
+            "devices.html",
+            logged_in=True,
+            devices=get_user_devices(session["user_id"]),
+            error=msg
+        )
+
+    cursor.execute(
+        "SELECT 1 FROM devices WHERE device_id = ? AND user_id = ?",
+        (deviceID, session["user_id"])
+    )
+    addedAlready = cursor.fetchone()
+
+    if addedAlready:
+        connection.close()
+        msg = "You already added this device."
+
+        if isAJAX:
+            return jsonify(success=False, error=msg), 409
+
+        return render_template(
+            "devices.html",
+            logged_in=True,
+            devices=get_user_devices(session["user_id"]),
+            error=msg
+        )
+
     try:
         cursor.execute("""
             INSERT INTO devices (user_id, device_id, nickname, max_power)
             VALUES (?, ?, ?, ?)
         """, (session["user_id"], deviceID, nickname, maxPower))
+
         connection.commit()
     except sqlite3.IntegrityError:
         connection.close()
+        msg = "A user already owns this device."
+        
         if isAJAX:
-            return jsonify(success=False, error="A device with that ID already exists."), 409
-        userDevices = get_user_devices(session["user_id"])
-        return render_template("devices.html", logged_in=True, devices=userDevices, error="A device with that ID already exists.")
- 
+            return jsonify(success=False, error=msg), 409
+        
+        return render_template(
+            "devices.html",
+            logged_in=True,
+            devices=get_user_devices(session["user_id"]),
+            error=msg
+        )
+        
     connection.close()
- 
+
     if isAJAX:
-        return jsonify(success=True, device={"device_id": deviceID,"nickname":  nickname,"max_power": maxPower,})
- 
-    userDevices = get_user_devices(session["user_id"])
-    return render_template("devices.html", logged_in=True, devices=userDevices)
+        return jsonify(success=True, device={
+            "device_id": deviceID,
+            "nickname": nickname,
+            "max_power": maxPower
+        })
+
+    return redirect("/devices")
 
 @app.route("/devices/<device_id>", methods=["DELETE"])
 def delete_device(device_id):
@@ -227,6 +283,47 @@ def renew_device_baseline(device_id):
 
     return jsonify(success=True)
 
+@app.route("/api/register_device", methods=["POST"])
+def register_device():
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify(success=False, error="Expected JSON"), 400
+
+    device_id = data.get("device_id")
+
+    if not device_id:
+        return jsonify(success=False, error="device_id required"), 400
+
+    connection = get_db()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT 1 FROM registered_devices WHERE device_id = ?",
+        (device_id,)
+    )
+    if not cursor.fetchone():
+        connection.close()
+        return jsonify(success=False, error="Device not authorized"), 403
+
+    cursor.execute(
+        "SELECT 1 FROM devices WHERE device_id = ?",
+        (device_id,)
+    )
+    if cursor.fetchone():
+        connection.close()
+        return jsonify(success=True, message="Already registered")
+
+    cursor.execute("""
+        INSERT INTO devices (user_id, device_id, nickname, max_power)
+        VALUES (NULL, ?, ?, ?)
+    """, (device_id, "Unclaimed Device", 0))
+
+    connection.commit()
+    connection.close()
+
+    return jsonify(success=True, message="Device registered")
+
 @app.route("/api/data", methods=["POST"])
 def api_data():
     data = request.get_json(silent=True)
@@ -239,6 +336,14 @@ def api_data():
  
     connection = get_db()
     cursor = connection.cursor()
+    
+    cursor.execute("""
+    SELECT 1 FROM registered_devices WHERE device_id = ?
+    """, (device_id,))
+    
+    if not cursor.fetchone():
+        connection.close()
+        return jsonify(success=False, error="Unauthorized device"), 403
  
     cursor.execute("""
         SELECT max_power, baseline_power, baseline_light

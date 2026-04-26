@@ -44,3 +44,6 @@ env/
 # Data
 
 website/data/
+
+# Insert fake data to database for testing
+insert.py
