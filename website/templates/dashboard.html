@@ -44,7 +44,15 @@
           </div>
         </div>
       </div>
-      <div class="last-seen">Last update: <span class="last-seen-time">Never</span></div>
+      <div class="device-actions">
+        <button class="renew-btn" data-id="{{ d.device_id }}">
+          Renew Baseline
+        </button>
+      </div>
+
+      <div class="last-seen">
+        Last update: <span class="last-seen-time">Never</span>
+      </div>
     </div>
     {% endfor %}
   </div>

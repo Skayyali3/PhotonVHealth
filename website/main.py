@@ -41,6 +41,7 @@ def init_db():
         max_power INTEGER,
         baseline_power REAL DEFAULT 0,
         baseline_light REAL DEFAULT 0,
+        renew_baseline INTEGER DEFAULT 0,
         FOREIGN KEY(user_id) REFERENCES users(id)
     )
     """)
@@ -192,13 +193,13 @@ def devices():
     return render_template("devices.html", logged_in=True, devices=userDevices)
 
 @app.route("/devices/<device_id>", methods=["DELETE"])
-def delete_device(deviceId):
+def delete_device(device_id):
     if "user_id" not in session:
         return jsonify(success=False, error="Unauthorized"), 401
  
     connection = get_db()
     cursor = connection.cursor()
-    cursor.execute("DELETE FROM devices WHERE device_id = ? AND user_id = ?",(deviceId, session["user_id"]))
+    cursor.execute("DELETE FROM devices WHERE device_id = ? AND user_id = ?",(device_id, session["user_id"]))
     connection.commit()
     deleted = cursor.rowcount
     connection.close()
@@ -206,6 +207,25 @@ def delete_device(deviceId):
     if deleted:
         return jsonify(success=True)
     return jsonify(success=False, error="Device not found"), 404
+
+@app.route("/devices/<device_id>/renew", methods=["POST"])
+def renew_device_baseline(device_id):
+    if "user_id" not in session:
+        return jsonify(success=False), 401
+
+    connection = get_db()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE devices
+        SET renew_baseline = 1
+        WHERE device_id = ? AND user_id = ?
+    """, (device_id, session["user_id"]))
+
+    connection.commit()
+    connection.close()
+
+    return jsonify(success=True)
 
 @app.route("/api/data", methods=["POST"])
 def api_data():
@@ -299,21 +319,35 @@ def api_latest(device_id):
 def api_commands(device_id):
     connection = get_db()
     cursor = connection.cursor()
-    cursor.execute(
-        "SELECT baseline_power, baseline_light FROM devices WHERE device_id = ?",
-        (device_id,)
-    )
+
+    cursor.execute("""
+        SELECT baseline_power, baseline_light, renew_baseline
+        FROM devices
+        WHERE device_id = ?
+    """, (device_id,))
+
     row = cursor.fetchone()
-    connection.close()
- 
+
     if not row:
-        return jsonify(success=False, error="Unknown device"), 404
- 
+        connection.close()
+        return jsonify(success=False), 404
+    
+    renew = bool(row[2])
+    
+    if renew:
+        cursor.execute("""
+        UPDATE devices SET renew_baseline = 0 
+        WHERE device_id = ?
+        """, (device_id,))
+        connection.commit()
+        
+    connection.close()
+
     return jsonify(
         success=True,
-        renew_baseline=False,
+        renew_baseline=renew,
         baseline_power=row[0] or 0,
-        baseline_light=row[1] or 0,
+        baseline_light=row[1] or 0
     )
 
 @app.route("/logout")

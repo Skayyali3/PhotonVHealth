@@ -157,4 +157,42 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/"/g, '&quot;');
   }
 
+  document.querySelectorAll('.renew-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const deviceId = btn.dataset.id;
+
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      fetch(`/devices/${encodeURIComponent(deviceId)}/renew`, {
+        method: 'POST'
+      })
+        .then(r => r.json())
+        .then(json => {
+          if (json.success) {
+            btn.textContent = 'Requested!';
+            setTimeout(() => {
+              btn.disabled = false;
+              btn.textContent = 'Renew Baseline';
+            }, 3000);
+          } else {
+            btn.disabled = false;
+            btn.textContent = 'Failed';
+            setTimeout(() => {
+              btn.disabled = false;
+              btn.textContent = 'Renew Baseline';
+            }, 2000);
+          }
+        })
+        .catch(() => {
+          btn.disabled = false;
+          btn.textContent = 'Error';
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = 'Renew Baseline';
+          }, 2000);
+        });
+    });
+  });
+
 });

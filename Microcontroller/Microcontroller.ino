@@ -123,18 +123,24 @@ void check_commands() {
   if (statusCode == 200) {
     String body = http.getString();
     StaticJsonDocument<128> doc;
-    if (deserializeJson(doc, body) == DeserializationError::Ok) {
-      float newBasePower = doc["baseline_power"] | 0.0f;
-      float newBaseLight = doc["baseline_light"] | 0.0f;
 
-      if (newBasePower > 0 && newBaseLight > 0) {
-        baselinePower = newBasePower;
-        baselineLight = newBaseLight;
-        Serial.println("Baseline synced from server.");
-        Serial.print("Power Baseline Value: ");
-        Serial.println(baselinePower);
-        Serial.print("Light Baseline Value: ");
-        Serial.println(baselineLight);
+    if (deserializeJson(doc, body) == DeserializationError::Ok) {
+      bool renew = doc["renew_baseline"] | false;
+
+      if (renew) {
+        float newLight = 4095 - smooth_light();
+        float newPower = ina219.getPower_mW();
+
+        if (newPower > 0 && newLight > 0) {
+          baselinePower = newPower;
+          baselineLight = newLight;
+
+          Serial.println("Manual baseline renewed!");
+          Serial.print("Baseline Power: ");
+          Serial.println(baselinePower);
+          Serial.print("Baseline Light: ");
+          Serial.println(baselineLight);
+        }
       }
     }
   } else {
