@@ -355,19 +355,19 @@ def api_data():
         connection.close()
         return jsonify(success=False, error="Unknown device"), 404
  
-    max_power_hw, baseline_power, baseline_light = row
+    maxPower, baselinePower, baselineLight = row
  
     power     = float(data.get("power", 0))
     light     = float(data.get("light", 0))
-    light_pct = float(data.get("percentage", 0))
+    lightIntensity = float(data.get("percentage", 0))
     temp      = float(data.get("temp", 0))
     efficiency = float(data.get("efficiency", 0))
 
     health = 0.0
-    if max_power_hw and max_power_hw > 0 and baseline_power and baseline_power > 0:
-        health = min((baseline_power / max_power_hw) * 100.0, 100.0)
+    if maxPower and maxPower > 0 and baselinePower and baselinePower > 0:
+        health = min((baselinePower / maxPower) * 100.0, 100.0)
 
-    if power > (baseline_power or 0) * 1.1 and light > 600 and temp < 35:
+    if power > (baselinePower or 0) * 1.1 and light > 600 and temp < 35:
         cursor.execute("""
             UPDATE devices SET baseline_power = ?, baseline_light = ?
             WHERE device_id = ?
@@ -376,7 +376,7 @@ def api_data():
     cursor.execute("""
         INSERT INTO sensor_data (device_id, power, light, light_percentage, temp, efficiency, health)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (device_id, power, light, light_pct, temp, efficiency, health))
+    """, (device_id, power, light, lightIntensity, temp, efficiency, health))
  
     connection.commit()
     connection.close()

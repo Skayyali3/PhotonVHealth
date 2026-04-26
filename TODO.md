@@ -6,7 +6,7 @@
 
 [✓] Confirm Solar Panel is working
 
-[✓] Test Micrcontroller code
+[✓] Test Microcontroller code
 
 [] Wait for the arrival of the DS18B20 waterproof temperature sensor insha'Allah
 
@@ -37,6 +37,8 @@
 [✓] Make ESP32 periodically check /api/commands/(device_id) route and send data to /api/data route correctly
 
 [✓] Make error handling responsive (no reloads + AJAX display)
+
+[] Add forgot password routing
 
 [] Add Push notifications
 
