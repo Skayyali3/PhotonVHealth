@@ -222,7 +222,7 @@ def reset_password(token):
     cursor.execute("""
         SELECT user_id FROM password_reset_tokens
         WHERE token = ? AND used = 0 AND expires_at > ?
-    """, (token, datetime.utcnow()))
+    """, (token, datetime.now(UTC)))
     row = cursor.fetchone()
  
     if not row:
@@ -473,10 +473,10 @@ def api_data():
  
     maxPower, baselinePower, baselineLight = row
  
-    power     = float(data.get("power", 0))
-    light     = float(data.get("light", 0))
+    power = float(data.get("power", 0))
+    light = float(data.get("light", 0))
     lightIntensity = float(data.get("percentage", 0))
-    temp      = float(data.get("temp", 0))
+    temp = float(data.get("temp", 0))
     efficiency = float(data.get("efficiency", 0))
 
     health = 0.0
@@ -525,6 +525,7 @@ def api_latest(device_id):
     connection.close()
  
     if not row:
+        connection.close()
         return jsonify(success=True, data=None)
  
     return jsonify(success=True, data={
