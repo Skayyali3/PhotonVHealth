@@ -13,12 +13,12 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-MAIL_HOST     = os.getenv("MAIL_HOST", "smtp.gmail.com")
-MAIL_PORT     = int(os.getenv("MAIL_PORT", 587))
+MAIL_HOST = os.getenv("MAIL_HOST", "smtp.gmail.com")
+MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
 MAIL_USERNAME = os.getenv("MAIL_USERNAME")
 MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
-MAIL_FROM     = os.getenv("MAIL_FROM", MAIL_USERNAME)
-APP_BASE_URL  = os.getenv("APP_BASE_URL", "http://127.0.0.1:5000/")
+MAIL_FROM = os.getenv("MAIL_FROM", MAIL_USERNAME)
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:5000/")
 
 if not app.secret_key:
     raise ValueError("Set a secret key in a .env file and keep the .env file in .gitignore (format: SECRET_KEY=abc123)\nWARNING: replace 'abc123' with the first result from get_secret_key.py")
@@ -144,7 +144,7 @@ def login():
     cursor = connection.cursor()
     cursor.execute(
         "SELECT id, username, password_hashed FROM users WHERE username = ? OR email = ?",
-        (account, account.lower())
+        (account.lower(), account.lower())
     )
     
     user = cursor.fetchone()
@@ -162,8 +162,8 @@ def signup():
     if request.method == "GET":
         return render_template("signup.html", logged_in=False)
  
-    username = request.form.get("username")
-    email    = request.form.get("email", "").strip().lower()
+    username = request.form.get("username").lower()
+    email = request.form.get("email", "").strip().lower()
     password = request.form.get("password")
     
     if not username or not password or not email:
