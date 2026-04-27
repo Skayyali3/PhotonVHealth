@@ -7,6 +7,7 @@
 <div class="form-container">
   <form action="/signup" method="post" id="signup-form">
     <input name="username" class="form-control" placeholder="Username" autocomplete="username">
+    <input name="email" type="email" class="form-control" placeholder="Email address" autocomplete="email">
     <input name="password" type="password" class="form-control" placeholder="Password" autocomplete="new-password">
     <button class="btn btn-success mt-2" id="signup-button">
       <span class="button-text">Sign up</span>
@@ -15,6 +16,6 @@
   {% if error %}
   <div class="alert alert-danger w-100" style="max-width:400px;">{{ error }}</div>
   {% endif %}
-  <p class="mt-3 text-white">Already have an account? <a href="/login" class="text-custom-blue fw-bold">Log in</a></p>
+  <p class="mt-3 text-white">Already have an account? <a href="/login" class="text-custom-link fw-bold">Log in</a></p>
 </div>
 {% endblock %}

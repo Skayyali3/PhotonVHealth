@@ -101,8 +101,10 @@ Log in + Sign up Pages
     width: 100%;
 }
 
-.text-custom-blue {
-    color: #008df9;
+.text-custom-link {
+    color: #00f932;
+    -webkit-text-stroke:white 0.15px;
+    text-decoration: underline #00f932;
 }
 
 .form-control {

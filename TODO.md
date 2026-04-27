@@ -38,7 +38,7 @@
 
 [✓] Make error handling responsive (no reloads + AJAX display)
 
-[] Add forgot password routing
+[✓] Add forgot password routing
 
 [] Add Push notifications
 
@@ -47,5 +47,9 @@
 [] Add /graphs POST route
 
 [] Make graphs (power over time, light intensity over power, etc)
+
+[] Split routes
+
+[] Make everything responsive
 
 [] Move to PostgreSQL or MySQL database

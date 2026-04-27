@@ -1,14 +1,24 @@
 from flask import Flask, render_template, Response, send_from_directory, session, redirect, request , jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta, UTC
 import os
 import sqlite3
+import secrets
+import smtplib
+from email.mime.text import MIMEText
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
+
+MAIL_HOST     = os.getenv("MAIL_HOST", "smtp.gmail.com")
+MAIL_PORT     = int(os.getenv("MAIL_PORT", 587))
+MAIL_USERNAME = os.getenv("MAIL_USERNAME")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+MAIL_FROM     = os.getenv("MAIL_FROM", MAIL_USERNAME)
+APP_BASE_URL  = os.getenv("APP_BASE_URL", "http://127.0.0.1:5000/")
 
 if not app.secret_key:
     raise ValueError("Set a secret key in a .env file and keep the .env file in .gitignore (format: SECRET_KEY=abc123)\nWARNING: replace 'abc123' with the first result from get_secret_key.py")
@@ -28,7 +38,8 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
-        password_hashed TEXT
+        password_hashed TEXT,
+        email TEXT UNIQUE
     )
     """)
     
@@ -62,6 +73,16 @@ def init_db():
     """)
     
     cursor.execute("CREATE TABLE IF NOT EXISTS registered_devices (device_id TEXT PRIMARY KEY)")
+ 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        token TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used INTEGER DEFAULT 0,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
 
     connection.commit()
     connection.close()
@@ -78,6 +99,28 @@ def get_user_devices(user_id):
     
     return [{"device_id": r[0],"nickname":  r[1],"max_power": r[2],"baseline_power": r[3],"baseline_light": r[4],} for r in rows]
 
+def send_reset_email(receiverAddress, resetLink):
+    body = f"""Hi,
+
+You requested a password reset for your PhotonVHealth account.
+
+Click the link below to reset your password (valid for 1 hour):
+{resetLink}
+
+If you didn't request this, you can safely ignore this email.
+
+— PhotonVHealth
+"""
+    msg = MIMEText(body)
+    msg["Subject"] = "PhotonVHealth — Password Reset"
+    msg["From"]    = MAIL_FROM
+    msg["To"]      = receiverAddress
+
+    with smtplib.SMTP(MAIL_HOST, MAIL_PORT) as server:
+        server.starttls()
+        server.login(MAIL_USERNAME, MAIL_PASSWORD)
+        server.sendmail(MAIL_FROM, [receiverAddress], msg.as_string())
+
 init_db()
 
 @app.route("/")
@@ -91,24 +134,28 @@ def login():
     if request.method == "GET":
         return render_template("login.html", logged_in=False)
  
-    username = request.form.get("username")
+    account = request.form.get("username", "").strip()
     password = request.form.get("password")
     
-    if not username or not password:
-        return render_template("login.html", logged_in=False, error="Username and password required")
+    if not account or not password:
+        return render_template("login.html", logged_in=False, error="Username/email and password required")
  
     connection = get_db()
     cursor = connection.cursor()
-    cursor.execute("SELECT id, password_hashed FROM users WHERE username = ?", (username,))
+    cursor.execute(
+        "SELECT id, username, password_hashed FROM users WHERE username = ? OR email = ?",
+        (account, account.lower())
+    )
+    
     user = cursor.fetchone()
     connection.close()
  
-    if user and check_password_hash(user[1], password):
+    if user and check_password_hash(user[2], password):
         session["user_id"] = user[0]
-        session["username"] = username
+        session["username"] = user[1]
         return redirect("/dashboard")
  
-    return render_template("login.html", logged_in=False, error="Invalid username or password")
+    return render_template("login.html", logged_in=False, error="Invalid username/email or password")
  
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
@@ -116,10 +163,11 @@ def signup():
         return render_template("signup.html", logged_in=False)
  
     username = request.form.get("username")
+    email    = request.form.get("email", "").strip().lower()
     password = request.form.get("password")
     
-    if not username or not password:
-        return render_template("signup.html", logged_in=False, error="Username and password required")
+    if not username or not password or not email:
+        return render_template("signup.html", logged_in=False, error="Username, email and password required")
  
     hashed = generate_password_hash(password)
  
@@ -127,14 +175,82 @@ def signup():
     cursor = connection.cursor()
  
     try:
-        cursor.execute("INSERT INTO users (username, password_hashed) VALUES (?, ?)", (username, hashed))
+        cursor.execute("INSERT INTO users (username, password_hashed, email) VALUES (?, ?, ?)", (username, hashed, email))
         connection.commit()
     except sqlite3.IntegrityError:
         connection.close()
-        return render_template("signup.html", logged_in=False, error="Username already exists")
+        return render_template("signup.html", logged_in=False, error="Username or email already exists")
  
     connection.close()
     return redirect("/login")
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "GET":
+        return render_template("forgot_password.html", logged_in=False)
+ 
+    email = request.form.get("email", "").strip().lower()
+    if not email:
+        return render_template("forgot_password.html", logged_in=False, error="Email is required.")
+ 
+    connection = get_db()
+    cursor = connection.cursor()
+    cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+ 
+    if user:
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.now(UTC) + timedelta(hours=1)
+        cursor.execute(
+            "INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
+            (token, user[0], expires_at)
+        )
+        connection.commit()
+        resetLink = f"{APP_BASE_URL}/reset-password/{token}"
+        try:
+            send_reset_email(email, resetLink)
+        except Exception as e:
+            app.logger.error(f"Failed to send reset email: {e}")
+ 
+    connection.close()
+    return render_template("forgot_password.html", logged_in=False, success=True)
+ 
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    connection = get_db()
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT user_id FROM password_reset_tokens
+        WHERE token = ? AND used = 0 AND expires_at > ?
+    """, (token, datetime.utcnow()))
+    row = cursor.fetchone()
+ 
+    if not row:
+        connection.close()
+        return render_template("reset_password.html", logged_in=False, invalid=True, token=token)
+ 
+    if request.method == "GET":
+        connection.close()
+        return render_template("reset_password.html", logged_in=False, invalid=False, token=token)
+ 
+    password = request.form.get("password", "")
+    confirm  = request.form.get("confirm_password", "")
+ 
+    if not password or len(password) < 8:
+        connection.close()
+        return render_template("reset_password.html", logged_in=False, invalid=False, token=token, error="Password must be at least 8 characters.")
+ 
+    if password != confirm:
+        connection.close()
+        return render_template("reset_password.html", logged_in=False, invalid=False, token=token, error="Passwords do not match.")
+ 
+    hashed = generate_password_hash(password)
+    cursor.execute("UPDATE users SET password_hashed = ? WHERE id = ?", (hashed, row[0]))
+    cursor.execute("UPDATE password_reset_tokens SET used = 1 WHERE token = ?", (token,))
+    connection.commit()
+    connection.close()
+ 
+    return redirect("/login?reset=1")
 
 @app.route("/dashboard")
 def dashboard():
