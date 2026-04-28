@@ -113,8 +113,8 @@ If you didn't request this, you can safely ignore this email.
 """
     msg = MIMEText(body)
     msg["Subject"] = "PhotonVHealth — Password Reset"
-    msg["From"]    = MAIL_FROM
-    msg["To"]      = receiverAddress
+    msg["From"] = MAIL_FROM
+    msg["To"] = receiverAddress
 
     with smtplib.SMTP(MAIL_HOST, MAIL_PORT) as server:
         server.starttls()
@@ -135,7 +135,7 @@ def login():
         return render_template("login.html", logged_in=False)
  
     account = request.form.get("username", "").strip()
-    password = request.form.get("password")
+    password = request.form.get("password").strip()
     
     if not account or not password:
         return render_template("login.html", logged_in=False, error="Username/email and password required")
@@ -164,10 +164,13 @@ def signup():
  
     username = request.form.get("username").lower()
     email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password")
+    password = request.form.get("password").strip()
     
     if not username or not password or not email:
         return render_template("signup.html", logged_in=False, error="Username, email and password required")
+    
+    if len(password) < 8:
+        return render_template("signup.html", logged_in=False, error="Password needs to be 8 or more characters long.")
  
     hashed = generate_password_hash(password)
  
@@ -233,7 +236,7 @@ def reset_password(token):
         connection.close()
         return render_template("reset_password.html", logged_in=False, invalid=False, token=token)
  
-    password = request.form.get("password", "")
+    password = request.form.get("password", "").lower()
     confirm  = request.form.get("confirm_password", "")
  
     if not password or len(password) < 8:

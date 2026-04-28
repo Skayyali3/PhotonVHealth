@@ -10,7 +10,7 @@
 
 [✓] Wait for the arrival of the DS18B20 waterproof temperature sensor insha'Allah
 
-[] Test sensor using Arduino UNO making sure it works
+[✓] Test sensor using Arduino UNO making sure it works
 
 [] Integrate to device changing some logic to fit ESP32 needs (replaces LM35) & test it
 

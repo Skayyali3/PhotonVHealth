@@ -1,38 +1,42 @@
-#define LM35_PIN 35
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-float smooth_temp() {
-  long sum = 0;
-  int samples = 50; 
+#define ONE_WIRE_BUS 9
 
-  // Dummy read to settle the ADC
-  analogReadMilliVolts(LM35_PIN); 
-  delay(10);
-
-  for (int i = 0; i < samples; i++) {
-    sum += analogReadMilliVolts(LM35_PIN);
-    delay(2); 
-  }
-
-  float average = (float)sum / samples;
-
-  float currentTemp = average / 10.0;
-
-  return currentTemp;
-}
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
 
 void setup() {
-  Serial.begin(115200);
-  delay(1000);
+  Serial.begin(9600);
+  Serial.println();
+  Serial.println("--- DS18B20 Temp Test Initialized ---");
 
-  Serial.println("LM35 Temperature Test Starting...");
+  sensors.begin();
+
+  if (sensors.getDeviceCount() == 0) {
+    Serial.println("No DS18B20 sensors found! Check connections.");
+  } else {
+    Serial.print("Found ");
+    Serial.print(sensors.getDeviceCount());
+    Serial.println(" sensor(s).");
+  }
 }
 
 void loop() {
-  float tempC = smooth_temp();
+  Serial.println();
+  Serial.println("Requesting temperatures...");
+  sensors.requestTemperatures();
+  Serial.println("DONE");
 
-  Serial.print("Temp: ");
-  Serial.print(tempC);
-  Serial.println(" °C");
+  float tempC = sensors.getTempCByIndex(0);
+
+  if(tempC == DEVICE_DISCONNECTED_C) {
+    Serial.println("Error: Could not read temperature data");
+  } else {
+    Serial.print("Temperature: ");
+    Serial.print(tempC);
+    Serial.print(" °C");
+  }
 
   delay(2000);
 }
