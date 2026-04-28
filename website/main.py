@@ -6,6 +6,7 @@ import sqlite3
 import secrets
 import smtplib
 from email.mime.text import MIMEText
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -71,8 +72,6 @@ def init_db():
         FOREIGN KEY(device_id) REFERENCES devices(device_id)
     )
     """)
-    
-    cursor.execute("CREATE TABLE IF NOT EXISTS registered_devices (device_id TEXT PRIMARY KEY)")
  
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -86,6 +85,9 @@ def init_db():
 
     connection.commit()
     connection.close()
+    
+def validate_device_id(device_id):
+    return bool(re.fullmatch(r"PVH_[A-F0-9]{12}", device_id))
     
 def get_user_devices(user_id):
     connection = get_db()
@@ -236,7 +238,7 @@ def reset_password(token):
         connection.close()
         return render_template("reset_password.html", logged_in=False, invalid=False, token=token)
  
-    password = request.form.get("password", "").lower()
+    password = request.form.get("password", "").strip()
     confirm  = request.form.get("confirm_password", "")
  
     if not password or len(password) < 8:
@@ -294,26 +296,6 @@ def devices():
 
     connection = get_db()
     cursor = connection.cursor()
-
-    cursor.execute(
-        "SELECT 1 FROM registered_devices WHERE device_id = ?",
-        (deviceID,)
-    )
-    exists = cursor.fetchone()
-
-    if not exists:
-        connection.close()
-        msg = "This device is not a shipped/registered product."
-
-        if isAJAX:
-            return jsonify(success=False, error=msg), 403
-
-        return render_template(
-            "devices.html",
-            logged_in=True,
-            devices=get_user_devices(session["user_id"]),
-            error=msg
-        )
 
     cursor.execute(
         "SELECT 1 FROM devices WHERE device_id = ? AND user_id = ?",
@@ -409,21 +391,16 @@ def register_device():
     if not data:
         return jsonify(success=False, error="Expected JSON"), 400
 
-    device_id = data.get("device_id")
+    device_id = (data.get("device_id") or "").strip().upper()
 
     if not device_id:
         return jsonify(success=False, error="device_id required"), 400
+    
+    if not validate_device_id(device_id):
+        return jsonify(success=False, error="Invalid device ID"), 400
 
     connection = get_db()
     cursor = connection.cursor()
-
-    cursor.execute(
-        "SELECT 1 FROM registered_devices WHERE device_id = ?",
-        (device_id,)
-    )
-    if not cursor.fetchone():
-        connection.close()
-        return jsonify(success=False, error="Device not authorized"), 403
 
     cursor.execute(
         "SELECT 1 FROM devices WHERE device_id = ?",
@@ -449,20 +426,21 @@ def api_data():
     if not data:
         return jsonify(success=False, error="Expected JSON"), 400
  
-    device_id = data.get("device_id")
+    device_id = (data.get("device_id") or "").strip().upper()
+    
     if not device_id:
         return jsonify(success=False, error="device_id required"), 400
+    
+    if not validate_device_id(device_id):
+        return jsonify(success=False, error="Invalid device ID"), 400
  
     connection = get_db()
     cursor = connection.cursor()
     
-    cursor.execute("""
-    SELECT 1 FROM registered_devices WHERE device_id = ?
-    """, (device_id,))
-    
+    cursor.execute("SELECT 1 FROM devices WHERE device_id = ?", (device_id,))
     if not cursor.fetchone():
         connection.close()
-        return jsonify(success=False, error="Unauthorized device"), 403
+        return jsonify(success=False, error="Unknown device"), 404
  
     cursor.execute("""
         SELECT max_power, baseline_power, baseline_light
