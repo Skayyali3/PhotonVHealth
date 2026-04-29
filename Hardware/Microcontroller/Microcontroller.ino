@@ -9,11 +9,18 @@
 #include <HTTPClient.h>
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
+#include <DallasTemperature.h>
+#include <OneWire.h>
+#include <WiFiClientSecure.h>
 
+WiFiClientSecure client;
+
+#define ONE_WIRE_BUS 4
 Adafruit_INA219 ina219;
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensor(&oneWire);
 
 const int lightPin = 34;
-const int tempPin = 35;
 
 float lightVal = 0;
 float tempVal = 0;
@@ -51,26 +58,23 @@ float smooth_light() {
   return sum / 50.0;
 }
 
-float smooth_temp() {
-  long sum = 0;
-  const int samples = 50;
+float read_temperature() {
+  sensor.requestTemperatures();
+  float tempC = sensor.getTempCByIndex(0);
 
-  analogReadMilliVolts(tempPin);  // dummy read to settle ADC
-  delay(10);
-
-  for (int i = 0; i < samples; i++) {
-    sum += analogReadMilliVolts(tempPin);
-    delay(2);
-  }
-
-  float average = (float)sum / samples;
-  float currentTemp = average / 10.0;
-
-  if (currentTemp <= 0.0 || currentTemp >= 110.0) {
-    Serial.println("LM35 read error, defaulting to previous value.");
+  if (tempC == DEVICE_DISCONNECTED_C || tempC == 85.0) {
+    Serial.println("Error in temp sensor, falling back to last best temp value.");
     return filteredTemp;
   }
-  return currentTemp;
+
+  return tempC;
+}
+
+void connect_via_https(HTTPClient &http, String url, bool isJson) {
+  http.begin(client, url);
+  if (isJson) {
+    http.addHeader("Content-Type", "application/json");
+  }
 }
 
 void connect_to_wifi() {
@@ -84,8 +88,7 @@ void data_to_server() {
   if (WiFi.status() != WL_CONNECTED) return;
 
   HTTPClient http;
-  http.begin("https://photonvhealth.onrender.com/api/data");
-  http.addHeader("Content-Type", "application/json");
+  connect_via_https(http, "https://photonvhealth.onrender.com/api/data", true);
 
   String json = "{";
   json += "\"device_id\":\"" + deviceId + "\",";
@@ -116,8 +119,7 @@ void register_device() {
   if (WiFi.status() != WL_CONNECTED) return;
 
   HTTPClient http;
-  http.begin("https://photonvhealth.onrender.com/api/register_device");
-  http.addHeader("Content-Type", "application/json");
+  connect_via_https(http, "https://photonvhealth.onrender.com/api/register_device", true);
 
   String json = "{";
   json += "\"device_id\":\"" + deviceId + "\"";
@@ -140,7 +142,8 @@ void check_commands() {
   if (WiFi.status() != WL_CONNECTED) return;
 
   HTTPClient http;
-  http.begin("https://photonvhealth.onrender.com/api/commands/" + deviceId);
+  String commandsUrl = "https://photonvhealth.onrender.com/api/commands/" + deviceId;
+  connect_via_https(http, commandsUrl, false);
 
   int statusCode = http.GET();
 
@@ -217,6 +220,7 @@ void check_alerts() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.println();
   Serial.println("PhotonVHealth Setup: Initialized...");
 
   uint64_t chipid = ESP.getEfuseMac();
@@ -227,13 +231,16 @@ void setup() {
   Serial.print("Device ID: ");
   Serial.println(deviceId);
 
+  client.setInsecure();
+
   ina219.begin();
-  analogReadResolution(12);
+  sensor.begin();
+  sensor.setResolution(12);
   connect_to_wifi();
 
-  filteredTemp = smooth_temp();
+  filteredTemp = read_temperature();
 
-  register_device()
+  register_device();
 
   check_commands();
 }
@@ -253,7 +260,7 @@ void loop() {
     powerVal = ina219.getPower_mW();
     voltageVal = ina219.getBusVoltage_V();
 
-    tempVal = smooth_temp();
+    tempVal = read_temperature();
     filteredTemp = filteredTemp * 0.9 + tempVal * 0.1;
     tempVal = filteredTemp;
 
@@ -274,27 +281,14 @@ void loop() {
     data_to_server();
 
     Serial.println("──────────────────────");
-    Serial.print("Light Intensity: ");
-    Serial.print(percentageLight);
-    Serial.println(" %");
-    Serial.print("Light:");
-    Serial.print(adjustedLight);
-    Serial.println(" a.u.");
-    Serial.print("Temp: ");
-    Serial.print(tempVal);
-    Serial.println(" °C");
-    Serial.print("Power: ");
-    Serial.print(powerVal);
-    Serial.println(" mW");
-    Serial.print("Voltage: ");
-    Serial.print(voltageVal);
-    Serial.println(" V");
-    Serial.print("Efficiency: ");
-    Serial.print(efficiency);
-    Serial.println(" %");
-    Serial.print("Health: ");
-    Serial.print(health);
-    Serial.println(" %");
+    Serial.print("Your device's ID: "); Serial.println(deviceId);
+    Serial.print("Light Intensity: "); Serial.print(percentageLight); Serial.println(" %");
+    Serial.print("Light:"); Serial.print(adjustedLight); Serial.println(" a.u.");
+    Serial.print("Temp: "); Serial.print(tempVal); Serial.println(" °C");
+    Serial.print("Power: "); Serial.print(powerVal); Serial.println(" mW");
+    Serial.print("Voltage: "); Serial.print(voltageVal); Serial.println(" V");
+    Serial.print("Efficiency: "); Serial.print(efficiency); Serial.println(" %");
+    Serial.print("Health: "); Serial.print(health); Serial.println(" %");
 
     check_alerts();
   }
