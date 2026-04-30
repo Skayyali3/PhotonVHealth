@@ -12,7 +12,9 @@
 
 [✓] Test sensor using Arduino UNO making sure it works
 
-[] Integrate to device changing some logic to fit ESP32 needs (replaces LM35) & test it
+[✓] Integrate to device changing some logic to fit ESP32 needs (replaces LM35) & test it
+
+[] Use solder paste on my panel's soldering to ensure proper connection (don't have flux)
 
 [] Enclosure work
 
@@ -40,6 +42,8 @@
 
 [✓] Add forgot password routing
 
+[✓] Split routes
+
 [] Add Push notifications
 
 [] Add Google indexing
@@ -47,8 +51,6 @@
 [] Add /graphs POST route
 
 [] Make graphs (power over time, light intensity over power, etc)
-
-[] Split routes
 
 [] Make everything responsive
 
