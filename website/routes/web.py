@@ -21,13 +21,6 @@ def dashboard():
     devices = get_user_devices(session["user_id"])
     return render_template("dashboard.html", logged_in=True, devices=devices)
 
-@web.route("/graphs")
-def graphs():
-    if "user_id" not in session:
-        return redirect("/")
-    
-    return render_template("graphs.html", logged_in=True)
-
 @web.route("/devices", methods=["GET", "POST"])
 def devices():
     if "user_id" not in session:

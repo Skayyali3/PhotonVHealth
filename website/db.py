@@ -3,7 +3,6 @@ import psycopg2.extras
 import os
 from dotenv import load_dotenv
 from contextlib import contextmanager
-import urllib.parse as urlparse
 
 load_dotenv()
 

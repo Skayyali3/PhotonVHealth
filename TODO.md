@@ -48,10 +48,6 @@
 
 [] Add Push notifications
 
-[] Add /graphs POST route
-
-[] Make graphs (power over time, light intensity over power, etc)
-
 [] Make everything responsive
 
 [] Add Google indexing

@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, session
-from db import get_cursor, get_db, return_db
+from db import get_cursor
 from utils import validate_device_id
 
 api = Blueprint("api", __name__, url_prefix="/api")
