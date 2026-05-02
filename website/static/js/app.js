@@ -31,8 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const ts = panel.querySelector('.last-seen-time');
       if (ts && data.recorded_at) {
-        const d = new Date(data.recorded_at + 'Z');
-        ts.textContent = d.toLocaleTimeString();
+        const d = new Date(data.recorded_at);
+
+        const pad = n => String(n).padStart(2, '0');
+
+        const formatted =
+          `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ` +
+          `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+        ts.textContent = formatted;
       }
     }
 
