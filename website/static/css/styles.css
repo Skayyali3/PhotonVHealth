@@ -61,6 +61,24 @@ body {
     color: white;
     margin-bottom: 20px;
     font-weight: bold;
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    padding: 1rem 1rem 0;
+}
+
+.page-content {
+    width: 90%;
+    max-width: 1200px;
+    margin: 1.5rem auto;
+    padding: 0 0.5rem;
+    box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+    .page-content {
+        width: 95%;
+        margin: 1rem auto;
+        padding: 0 0.25rem;
+    }
 }
 
 /*
@@ -89,6 +107,13 @@ Log in + Sign up Pages
     gap: 10px;
 }
 
+@media (max-width: 600px) {
+    .form-container {
+        width: 100%;
+        padding: 12px;
+    }
+}
+
 .form-container div {
     text-align: center;
 }
@@ -99,6 +124,20 @@ Log in + Sign up Pages
     flex-direction: column;
     align-items: center;
     width: 100%;
+}
+
+#login-form .form-control,
+#signup-form .form-control {
+    width: 100%;
+    max-width: 360px;
+    font-size: 1rem;
+}
+
+@media (max-width: 600px) {
+    #login-form .form-control,
+    #signup-form .form-control {
+        max-width: 100%;
+    }
 }
 
 .text-custom-link {
@@ -119,6 +158,19 @@ Dashboard
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.25rem;
+}
+
+@media (max-width: 700px) {
+    #device-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+@media (min-width: 701px) and (max-width: 1024px) {
+    #device-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .device-panel {
@@ -143,6 +195,7 @@ Dashboard
     font-weight: 700;
     font-size: 1.05rem;
     color: #1a1a1a;
+    word-break: break-word;
 }
 
 .device-id-badge code {
@@ -186,6 +239,15 @@ Dashboard
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-bottom: 0.75rem;
+}
+
+@media (max-width: 360px) {
+    .metric-grid {
+        grid-template-columns: 1fr;
+    }
+    .metric-card--wide {
+        grid-column: span 1;
+    }
 }
 
 .metric-card {
@@ -250,13 +312,15 @@ Dashboard
 .renew-btn {
     width: 100%;
     border: none;
-    padding: 10px;
+    padding: 12px;
     border-radius: 10px;
     background: #198754;
     color: white;
     font-weight: 600;
     cursor: pointer;
     transition: 0.2s ease;
+    min-height: 44px;
+    font-size: 0.95rem;
 }
 
 .renew-btn:hover {
@@ -276,6 +340,8 @@ Devices
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin-top: 1.5rem;
+    /* Subtle hint that table is scrollable on mobile */
+    border-radius: 12px;
 }
 
 .devices-table {
@@ -283,6 +349,7 @@ Devices
     border-radius: 12px;
     overflow: hidden;
     min-width: 480px;
+    width: 100%;
 }
 
 .devices-table thead th {
@@ -292,6 +359,7 @@ Devices
     letter-spacing: 0.04em;
     color: #555;
     border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
 }
 
 .devices-table td code {
@@ -301,6 +369,12 @@ Devices
     font-size: 0.82rem;
     color: #333;
     word-break: break-all;
+}
+
+/* Ensure delete button is easy to tap */
+.delete-btn {
+    min-height: 36px;
+    white-space: nowrap;
 }
 
 /*
@@ -332,6 +406,8 @@ Push Notifications
     cursor: pointer;
     transition: background 0.2s, opacity 0.2s;
     white-space: nowrap;
+    /* Ensure tap target is large enough */
+    min-height: 44px;
 }
 
 .btn-push:disabled {
@@ -366,5 +442,14 @@ Push Notifications
     .dashboard-topbar {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .push-control {
+        width: 100%;
+    }
+
+    .btn-push {
+        width: 100%;
+        text-align: center;
     }
 }

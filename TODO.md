@@ -1,25 +1,5 @@
 # TODO 
 
-## Hardware
-
-[✓] Test Solar Panel to see if working now that its wires have been soldered back onto it
-
-[✓] Confirm Solar Panel is working
-
-[✓] Test Microcontroller code
-
-[✓] Wait for the arrival of the DS18B20 waterproof temperature sensor insha'Allah
-
-[✓] Test sensor using Arduino UNO making sure it works
-
-[✓] Integrate to device changing some logic to fit ESP32 needs (replaces LM35) & test it
-
-[✓] Use solder paste on my panel's soldering to ensure proper connection (don't have flux)
-
-[] Enclosure work
-
-## Software (website + micrcontroller code)
-
 [✓] Make sure everything's responsive
 
 [✓] Add devices table
@@ -48,6 +28,6 @@
 
 [✓] Add Push notifications
 
-[] Make sure everything's responsive
+[✓] Make everything responsive
 
 [] Add Google indexing
