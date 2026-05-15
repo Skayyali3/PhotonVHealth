@@ -160,7 +160,10 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = true;
       btn.textContent = 'Sending...';
 
-      fetch(`/devices/${encodeURIComponent(deviceId)}/renew`, { method: 'POST' })
+      fetch(`/devices/${encodeURIComponent(deviceId)}/renew`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+      })
         .then(r => r.json())
         .then(json => {
           if (json.success) {
