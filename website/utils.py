@@ -1,12 +1,14 @@
 import re
+import logging
 from db import get_cursor
-from email.mime.text import MIMEText
+from flask_mail import Mail, Message
 from dotenv import load_dotenv
 import os
-import smtplib
 from flask import request, has_request_context
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+
+logger = logging.getLogger(__name__)
 
 def limiter_key():
     if request.is_json and has_request_context:
@@ -15,14 +17,11 @@ def limiter_key():
     return get_remote_address()
 
 limiter = Limiter(key_func=limiter_key, default_limits=["200 per day", "50 per hour"])
+mail = Mail()
 
 load_dotenv()
 
-MAIL_HOST = os.getenv("MAIL_HOST", "smtp.gmail.com")
-MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
-MAIL_USERNAME = os.getenv("MAIL_USERNAME")
-MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
-MAIL_FROM = os.getenv("MAIL_FROM", MAIL_USERNAME)
+MAIL_FROM = os.getenv("MAIL_FROM", os.getenv("MAIL_USERNAME"))
 
 def validate_device_id(device_id):
     return bool(re.fullmatch(r"PVH_[A-F0-9]{12}", device_id))
@@ -49,12 +48,14 @@ If you didn't request this, you can safely ignore this email.
 
 — PhotonVHealth
 """
-    msg = MIMEText(body)
-    msg["Subject"] = "PhotonVHealth — Password Reset"
-    msg["From"] = MAIL_FROM
-    msg["To"] = receiverAddress
-
-    with smtplib.SMTP(MAIL_HOST, MAIL_PORT, timeout=10) as server:
-        server.starttls()
-        server.login(MAIL_USERNAME, MAIL_PASSWORD)
-        server.sendmail(MAIL_FROM, [receiverAddress], msg.as_string())
+    try:
+        msg = Message(
+            subject="PhotonVHealth — Password Reset",
+            recipients=[receiverAddress],
+            body=body,
+            sender=("PhotonVHealth", MAIL_FROM)
+        )
+        mail.send(msg)
+    except Exception as e:
+        logger.error(f"Failed to send reset email: {e}")
+        raise

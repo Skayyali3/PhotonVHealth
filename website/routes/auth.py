@@ -5,6 +5,9 @@ import secrets
 import os
 import psycopg2
 import hashlib
+import logging
+
+logger = logging.getLogger(__name__)
 
 from utils import send_reset_email, limiter
 from db import get_cursor
@@ -95,7 +98,7 @@ def forgot_password():
             try:
                 send_reset_email(email, resetLink)
             except Exception as e:
-                auth.logger.error(f"Failed to send reset email: {e}")
+                logger.error(f"Failed to send reset email: {e}")
 
     return render_template("forgot_password.html", logged_in=False, success=True)
  
