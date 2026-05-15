@@ -29,7 +29,15 @@ don't cause sudden losses in the efficiency of your panel(s) while going unnotic
 
 * **3.3V battery/5V battery connected directly to USB entry point of ESP32:** Power ESP32 
 
-#### REMINDER: COMMON GND FOR ALL
+### For More Info: [Click Here](https://github.com/Skayyali3/PhotonVHealth/blob/main/Hardware/Connection.md)
+
+### Where to place Components
+
+- INA219, ESP32: Close to Panel but inside enclosure
+
+- KY-018: On top of the Solar Panel angled exactly how Panel is angled
+
+- DS18B20 Probe Sensor: Stick outside ideally near panel to measure ambient air temperature
 
 ### Arduino IDE Libraries Needed:
 
