@@ -297,6 +297,7 @@ Dashboard
 
 .health-bar-fill {
     height: 100%;
+    width: 0%;
     background: #1D9E75;
     border-radius: 3px;
     transition: width 0.6s ease;

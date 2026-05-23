@@ -5,7 +5,7 @@ import json
 import urllib.request
 import urllib.error
 from dotenv import load_dotenv
-from flask import request, has_request_context
+from flask import request, has_request_context, session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -28,6 +28,9 @@ def limiter_key():
             return f"device:{data.get('device_id')}"
 
     if has_request_context():
+        if session.get("user_id"):
+            return f"user:{session["user_id"]}"
+        
         email = request.form.get("email") or request.form.get("username")
         if email:
             return f"email:{email.strip().lower()}"

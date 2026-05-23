@@ -129,6 +129,7 @@ def api_data():
     return jsonify(success=True, health=round(health, 1))
  
 @api.route("/latest/<device_id>")
+@limiter.exempt
 def api_latest(device_id):
     if "user_id" not in session:
         return jsonify(success=False, error="Unauthorized"), 401
